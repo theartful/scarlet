@@ -7,6 +7,7 @@ use crate::scalar::*;
 // the invariant is inf >= sup
 #[derive(Debug, Clone, Copy)]
 pub struct Interval<T: GFloat> {
+    // inclusive bounds
     pub inf: T,
     pub sup: T,
 }
@@ -21,20 +22,23 @@ impl<T: GFloat> Interval<T> {
     pub fn is_positive(&self) -> bool {
         self.inf > T::zero()
     }
-    pub fn is_nonnegative(&self) -> bool {
-        self.inf >= T::zero()
-    }
     pub fn is_negative(&self) -> bool {
         self.sup < T::zero()
     }
+    pub fn is_nonpositive(&self) -> bool {
+        self.sup <= T::zero()
+    }
+    pub fn is_nonnegative(&self) -> bool {
+        self.inf >= T::zero()
+    }
     pub fn square(&self) -> Self {
         // adapted from CGAL
-        if self.inf >= T::zero() {
+        if self.is_nonnegative() {
             Self::new(
                 (self.inf * self.inf).next_down(),
                 (self.sup * self.sup).next_up(),
             )
-        } else if self.sup < T::zero() {
+        } else if self.is_nonpositive() {
             Self::new(
                 (self.sup * self.sup).next_down(),
                 (self.inf * self.inf).next_up(),
@@ -45,7 +49,7 @@ impl<T: GFloat> Interval<T> {
         }
     }
     pub fn sqrt(&self) -> Option<Self> {
-        if self.is_positive() {
+        if self.is_nonnegative() {
             Some(Self::new(
                 self.inf.sqrt().next_down(),
                 self.sup.sqrt().next_up(),
@@ -58,7 +62,7 @@ impl<T: GFloat> Interval<T> {
         (self.inf + self.sup) * T::from(0.5).unwrap()
     }
     pub fn in_range(&self, t0: T, t1: T) -> bool {
-        self.inf >= t0 && self.sup < t1
+        self.inf >= t0 && self.sup <= t1
     }
     pub fn is_exact(&self) -> bool {
         // should we use fequals instead?
@@ -138,31 +142,31 @@ impl<T: GFloat> std::ops::Mul<Self> for Interval<T> {
         let a = &self;
         let b = &rhs;
 
-        // if a is nonnegative
+        // if a >= 0
         if a.is_nonnegative() {
             // if b >= 0 then result = [a.inf * b.inf, a.sup * b.sup]
-            // if b < 0  then result = [a.sup * b.inf, a.inf * b.sup]
+            // if b <= 0 then result = [a.sup * b.inf, a.inf * b.sup]
             // if b ~= 0 then result = [a.sup * b.inf, a.sup * b.sup]
-            let x = if b.inf >= T::zero() { a.inf } else { a.sup };
-            let y = if b.sup <= T::zero() { a.inf } else { a.sup };
+            let x = if b.is_nonnegative() { a.inf } else { a.sup };
+            let y = if b.is_nonpositive() { a.inf } else { a.sup };
             Self::new((x * b.inf).next_down(), (y * b.sup).next_up())
         }
-        // if a is negitive
-        else if a.is_negative() {
+        // if a <= 0
+        else if a.is_nonpositive() {
             // if b >= 0 then result = [a.inf * b.sup, a.sup * b.inf]
-            // if b < 0  then result = [a.sup * b.sup, a.inf * b.inf]
+            // if b <= 0 then result = [a.sup * b.sup, a.inf * b.inf]
             // if b ~= 0 then result = [a.inf * b.sup, a.inf * b.inf]
-            let x = if b.sup <= T::zero() { a.sup } else { a.inf };
-            let y = if b.inf >= T::zero() { a.sup } else { a.inf };
+            let x = if b.is_nonpositive() { a.sup } else { a.inf };
+            let y = if b.is_nonnegative() { a.sup } else { a.inf };
             Self::new((x * b.sup).next_down(), (y * b.inf).next_up())
         }
         // this means a ~= 0
         else {
             // if b >= 0 then result = [a.inf * b.sup, a.sup * b.sup]
-            // if b < 0  then result = [a.sup * b.inf, a.inf * b.inf]
-            if b.inf >= T::zero() {
+            // if b <= 0 then result = [a.sup * b.inf, a.inf * b.inf]
+            if b.is_nonnegative() {
                 Self::new((a.inf * b.sup).next_down(), (a.sup * b.sup).next_up())
-            } else if b.sup <= T::zero() {
+            } else if b.is_nonpositive() {
                 Self::new((a.sup * b.inf).next_down(), (a.inf * b.inf).next_up())
             } else {
                 Self::new(
@@ -188,21 +192,21 @@ impl<T: GFloat> std::ops::Div<Self> for Interval<T> {
         let b = &rhs;
 
         // if b is positive
-        if b.inf > T::zero() {
+        if b.is_positive() {
             // if a >= 0 then result = [a.inf / b.sup, a.sup / b.inf]
-            // if a < 0  then result = [a.inf / b.inf, a.sup / b.sup]
-            // if a ~ 0  then result = [a.inf / b.inf, a.sup / b.inf]
-            let x = if a.inf >= T::zero() { b.sup } else { b.inf };
-            let y = if a.sup < T::zero() { b.sup } else { b.inf };
+            // if a <= 0 then result = [a.inf / b.inf, a.sup / b.sup]
+            // if a ~= 0 then result = [a.inf / b.inf, a.sup / b.inf]
+            let x = if a.is_nonnegative() { b.sup } else { b.inf };
+            let y = if a.is_nonpositive() { b.sup } else { b.inf };
             Self::new((a.inf / x).next_down(), (a.sup / y).next_up())
         }
         // if b is negative
-        else if b.sup < T::zero() {
+        else if b.is_negative() {
             // if a >= 0 then result = [a.sup / b.sup, a.inf / b.inf]
-            // if a < 0  then result = [a.sup / b.inf, a.inf / b.sup]
-            // if a ~ 0  then result = [a.sup / b.sup, a.inf / b.sup]
-            let x = if a.sup < T::zero() { b.inf } else { b.sup };
-            let y = if a.inf >= T::zero() { b.inf } else { b.sup };
+            // if a <= 0 then result = [a.sup / b.inf, a.inf / b.sup]
+            // if a ~= 0 then result = [a.sup / b.sup, a.inf / b.sup]
+            let x = if a.is_nonpositive() { b.inf } else { b.sup };
+            let y = if a.is_nonnegative() { b.inf } else { b.sup };
             Self::new((a.sup / x).next_down(), (a.inf / y).next_up())
         }
         // if 0 lies in b
