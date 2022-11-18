@@ -16,7 +16,8 @@ pub type Intervalf = Interval<Float>;
 
 impl<T: GFloat> Interval<T> {
     pub fn new(inf: T, sup: T) -> Self {
-        assert!(sup >= inf);
+        use more_asserts::assert_ge;
+        assert_ge!(sup, inf);
         Self { inf, sup }
     }
     pub fn is_positive(&self) -> bool {
@@ -67,6 +68,9 @@ impl<T: GFloat> Interval<T> {
     pub fn is_exact(&self) -> bool {
         // should we use fequals instead?
         self.inf == self.sup
+    }
+    pub fn contains(&self, t: T) -> bool {
+        self.sup >= t && self.inf <= t
     }
 }
 
@@ -181,7 +185,11 @@ impl<T: GFloat> std::ops::Mul<T> for Interval<T> {
     type Output = Self;
 
     fn mul(self, rhs: T) -> Self::Output {
-        Self::new((self.inf * rhs).next_down(), (self.sup * rhs).next_up())
+        if rhs >= T::zero() {
+            Self::new((self.inf * rhs).next_down(), (self.sup * rhs).next_up())
+        } else {
+            Self::new((self.sup * rhs).next_down(), (self.inf * rhs).next_up())
+        }
     }
 }
 impl<T: GFloat> std::ops::Div<Self> for Interval<T> {
@@ -219,7 +227,13 @@ impl<T: GFloat> std::ops::Div<T> for Interval<T> {
     type Output = Self;
 
     fn div(self, rhs: T) -> Self::Output {
-        Self::new((self.inf / rhs).next_down(), (self.sup / rhs).next_up())
+        if rhs > T::zero() {
+            Self::new((self.inf / rhs).next_down(), (self.sup / rhs).next_up())
+        } else if rhs < T::zero() {
+            Self::new((self.sup / rhs).next_down(), (self.inf / rhs).next_up())
+        } else {
+            Self::new(T::neg_infinity(), T::infinity())
+        }
     }
 }
 impl<T: GFloat> std::ops::AddAssign<Self> for Interval<T> {
@@ -251,7 +265,7 @@ impl<T: GFloat> std::ops::Neg for Interval<T> {
 }
 impl<T: GFloat> std::cmp::PartialEq<Self> for Interval<T> {
     fn eq(&self, other: &Self) -> bool {
-        self.inf == other.sup && self.sup == other.inf
+        self.inf == other.inf && self.sup == other.sup
     }
 }
 impl<T: GFloat> std::cmp::PartialOrd<Self> for Interval<T> {
@@ -333,5 +347,86 @@ impl<T: GFloat> GFloatBits for Interval<T> {
     }
     fn next_down(self) -> Self {
         Self::new(self.inf.next_down(), self.sup.next_down())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn spiral_test() {
+        // taken from CGAL
+        let mut x_i = Interval::<f64>::from(1.0);
+        let mut y_i = Interval::<f64>::from(0.0);
+
+        let mut i = 0;
+        while i < 500 {
+            i += 1;
+
+            let x_ip1 = x_i - y_i / Interval::<f64>::from(i as f64).sqrt().unwrap();
+            let y_ip1 = y_i + x_i / Interval::<f64>::from(i as f64).sqrt().unwrap();
+            x_i = x_ip1;
+            y_i = y_ip1;
+
+            if x_i.contains(0.0) || y_i.contains(0.0) {
+                break;
+            }
+        }
+        // if we changed rounding modes instead of adding/subtracting ulps, this
+        // should go up to 396
+        assert_eq!(i, 365);
+    }
+
+    #[test]
+    fn square_root_test() {
+        // taken from CGAL
+        use more_asserts::*;
+
+        let mut i = 0;
+        let mut a = Interval::<f64>::new(0.5, 1.5);
+
+        while i < 500 {
+            i += 1;
+            let b = a.sqrt().unwrap();
+
+            if b == a {
+                break;
+            }
+            a = b;
+        }
+        a -= Interval::<f64>::from(1.0);
+        assert_eq!(i, 54);
+
+        // ideally we should converge to 1 as we repeatedly perform square root
+        assert_lt!(a.sup, 3. / ((1 << 30) as f64 * (1 << 22) as f64));
+        assert_gt!(a.inf, -3. / ((1 << 30) as f64 * (1 << 22) as f64));
+    }
+
+    #[test]
+    fn division_test() {
+        // taken from CGAL
+        let mut a = Interval::<f64>::from(1.0);
+        let mut b = Interval::<f64>::from(0.0);
+        let mut d = Interval::<f64>::new(-1.0, 1.0) / -2.0 + Interval::<f64>::from(1.0); // [0.5, 1.5]
+        let mut e = -d;
+
+        let c = a / b;
+        assert_eq!(Interval::<f64>::new(f64::NEG_INFINITY, f64::INFINITY), c);
+
+        let mut i = 0;
+        while i < 100 {
+            i += 1;
+
+            b = (Interval::<f64>::from(1.0) / d + d) / 4.0 + Interval::<f64>::from(0.5);
+            a = (Interval::<f64>::from(-1.0) / e - e * 1.0) / -4.0 - Interval::<f64>::from(0.5); // make it complicated to test more cases.
+
+            if b == d && a == e {
+                break;
+            }
+            d = b;
+            e = a;
+        }
+        assert_eq!(i, 54);
     }
 }
