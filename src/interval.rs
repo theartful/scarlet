@@ -192,6 +192,11 @@ impl<T: GFloat> std::ops::Mul<T> for Interval<T> {
         }
     }
 }
+impl<T: GFloat> std::ops::MulAssign<T> for Interval<T> {
+    fn mul_assign(&mut self, rhs: T) {
+        *self = *self * rhs;
+    }
+}
 impl<T: GFloat> std::ops::Div<Self> for Interval<T> {
     type Output = Self;
 
@@ -221,6 +226,11 @@ impl<T: GFloat> std::ops::Div<Self> for Interval<T> {
         else {
             Self::new(T::neg_infinity(), T::infinity())
         }
+    }
+}
+impl<T: GFloat> std::ops::DivAssign<T> for Interval<T> {
+    fn div_assign(&mut self, rhs: T) {
+        *self = *self / rhs;
     }
 }
 impl<T: GFloat> std::ops::Div<T> for Interval<T> {
