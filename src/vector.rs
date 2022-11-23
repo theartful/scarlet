@@ -1,4 +1,4 @@
-use crate::scalar::{Float, Int, Scalar, SignedScalar, UInt};
+use crate::scalar::{AlmostEqual, Float, Int, Scalar, SignedScalar, UInt};
 pub use crate::vector_traits::{Dimension, InnerProduct, InnerScalar, Norm};
 
 pub type Vector<T, const N: usize> = GenericVector<T, N, VectorMarker>;
@@ -83,36 +83,51 @@ impl<T: Scalar, U> GenericVector<T, 2, U> {
 }
 
 impl<T: Scalar, const N: usize, U> GenericVector<T, N, U> {
+    #[inline(always)]
     pub fn x(self) -> T {
-        assert!(N > 0);
+        debug_assert!(N > 0);
         self.vec[0]
     }
+
+    #[inline(always)]
     pub fn y(self) -> T {
-        assert!(N > 1);
+        debug_assert!(N > 1);
         self.vec[1]
     }
+
+    #[inline(always)]
     pub fn z(self) -> T {
-        assert!(N > 2);
+        debug_assert!(N > 2);
         self.vec[2]
     }
+
+    #[inline(always)]
     pub fn w(self) -> T {
-        assert!(N > 3);
+        debug_assert!(N > 3);
         self.vec[3]
     }
+
+    #[inline(always)]
     pub fn x_mut(&mut self) -> &mut T {
-        assert!(N > 0);
+        debug_assert!(N > 0);
         &mut self.vec[0]
     }
+
+    #[inline(always)]
     pub fn y_mut(&mut self) -> &mut T {
-        assert!(N > 1);
+        debug_assert!(N > 1);
         &mut self.vec[1]
     }
+
+    #[inline(always)]
     pub fn z_mut(&mut self) -> &mut T {
-        assert!(N > 2);
+        debug_assert!(N > 2);
         &mut self.vec[2]
     }
+
+    #[inline(always)]
     pub fn w_mut(&mut self) -> &mut T {
-        assert!(N > 3);
+        debug_assert!(N > 3);
         &mut self.vec[3]
     }
 }
@@ -130,9 +145,21 @@ impl<T: Scalar, const N: usize, U> std::cmp::PartialEq<Self> for GenericVector<T
     }
 }
 
+impl<T: Scalar, const N: usize, U> AlmostEqual for GenericVector<T, N, U> {
+    fn almost_eq(&self, other: &Self) -> bool {
+        for i in 0..N {
+            if !self.vec[i].almost_eq(&other.vec[i]) {
+                return false;
+            }
+        }
+        true
+    }
+}
+
 impl<T: SignedScalar, const N: usize, U> std::ops::Neg for GenericVector<T, N, U> {
     type Output = GenericVector<T, N, U>;
 
+    #[inline]
     fn neg(self) -> Self::Output {
         let vec: [T; N] = self.vec.map(|v| -v);
         let p = std::marker::PhantomData;
@@ -145,6 +172,7 @@ impl<T: Scalar, const N: usize, U> std::ops::Add<GenericVector<T, N, U>>
 {
     type Output = GenericVector<T, N, U>;
 
+    #[inline]
     fn add(self, rhs: GenericVector<T, N, U>) -> Self::Output {
         let mut vec: [T; N] = self.vec;
         for i in 0..N {
@@ -160,6 +188,7 @@ impl<T: Scalar, const N: usize, U> std::ops::Add<GenericVector<T, N, U>>
 impl<T: Scalar, const N: usize, U> std::ops::AddAssign<GenericVector<T, N, U>>
     for GenericVector<T, N, U>
 {
+    #[inline]
     fn add_assign(&mut self, rhs: GenericVector<T, N, U>) {
         for i in 0..N {
             self.vec[i] += rhs.vec[i];
@@ -172,6 +201,7 @@ impl<T: Scalar, const N: usize, U: HasSub> std::ops::Sub<GenericVector<T, N, U>>
 {
     type Output = GenericVector<T, N, U>;
 
+    #[inline]
     fn sub(self, rhs: GenericVector<T, N, U>) -> Self::Output {
         let mut vec: [T; N] = self.vec;
         for i in 0..N {
@@ -187,6 +217,7 @@ impl<T: Scalar, const N: usize, U: HasSub> std::ops::Sub<GenericVector<T, N, U>>
 impl<T: Scalar, const N: usize, U: HasSub> std::ops::SubAssign<GenericVector<T, N, U>>
     for GenericVector<T, N, U>
 {
+    #[inline]
     fn sub_assign(&mut self, rhs: GenericVector<T, N, U>) {
         for i in 0..N {
             self.vec[i] -= rhs.vec[i];
@@ -196,14 +227,32 @@ impl<T: Scalar, const N: usize, U: HasSub> std::ops::SubAssign<GenericVector<T, 
 
 impl<T: Scalar, const N: usize, U> Copy for GenericVector<T, N, U> {}
 impl<T: Scalar, const N: usize, U> Clone for GenericVector<T, N, U> {
+    #[inline]
     fn clone(&self) -> Self {
         *self
+    }
+}
+
+impl<T: Scalar, const N: usize, U> std::ops::Index<usize> for GenericVector<T, N, U> {
+    type Output = T;
+
+    #[inline]
+    fn index(&self, idx: usize) -> &Self::Output {
+        &self.vec[idx]
+    }
+}
+
+impl<T: Scalar, const N: usize, U> std::ops::IndexMut<usize> for GenericVector<T, N, U> {
+    #[inline]
+    fn index_mut(&mut self, idx: usize) -> &mut Self::Output {
+        &mut self.vec[idx]
     }
 }
 
 impl<T: Scalar, const N: usize, U> std::ops::Mul<T> for GenericVector<T, N, U> {
     type Output = GenericVector<T, N, U>;
 
+    #[inline]
     fn mul(self, rhs: T) -> Self::Output {
         Self::from(self.vec.map(|x| x * rhs))
     }
@@ -212,6 +261,7 @@ impl<T: Scalar, const N: usize, U> std::ops::Mul<T> for GenericVector<T, N, U> {
 impl<T: Scalar, const N: usize, U> std::ops::Div<T> for GenericVector<T, N, U> {
     type Output = GenericVector<T, N, U>;
 
+    #[inline]
     fn div(self, rhs: T) -> Self::Output {
         Self::from(self.vec.map(|x| x / rhs))
     }
@@ -220,6 +270,7 @@ impl<T: Scalar, const N: usize, U> std::ops::Div<T> for GenericVector<T, N, U> {
 impl<T: SignedScalar, const N: usize, U: HasSub, I> InnerProduct<GenericVector<T, N, I>>
     for GenericVector<T, N, U>
 {
+    #[inline]
     fn dot(&self, rhs: GenericVector<T, N, I>) -> Self::ScalarType {
         let mut res = T::zero();
         for i in 0..N {
@@ -230,6 +281,7 @@ impl<T: SignedScalar, const N: usize, U: HasSub, I> InnerProduct<GenericVector<T
 }
 
 impl<T: Scalar, const N: usize, U> From<[T; N]> for GenericVector<T, N, U> {
+    #[inline]
     fn from(vec: [T; N]) -> Self {
         let p = std::marker::PhantomData;
         Self { vec, p }
@@ -238,18 +290,21 @@ impl<T: Scalar, const N: usize, U> From<[T; N]> for GenericVector<T, N, U> {
 
 // interactions between vector/point/normal
 impl<T: Scalar, const N: usize> From<Vector<T, N>> for Normal<T, N> {
+    #[inline]
     fn from(v: Vector<T, N>) -> Normal<T, N> {
         let p = std::marker::PhantomData;
         Normal { vec: v.vec, p }
     }
 }
 impl<T: Scalar, const N: usize> From<Vector<T, N>> for Point<T, N> {
+    #[inline]
     fn from(v: Vector<T, N>) -> Point<T, N> {
         let p = std::marker::PhantomData;
         Point { vec: v.vec, p }
     }
 }
 impl<T: Scalar, const N: usize> From<Point<T, N>> for Vector<T, N> {
+    #[inline]
     fn from(v: Point<T, N>) -> Vector<T, N> {
         let p = std::marker::PhantomData;
         Vector { vec: v.vec, p }
@@ -258,6 +313,7 @@ impl<T: Scalar, const N: usize> From<Point<T, N>> for Vector<T, N> {
 impl<T: Scalar, const N: usize> std::ops::Sub<Point<T, N>> for Point<T, N> {
     type Output = Vector<T, N>;
 
+    #[inline]
     fn sub(self, rhs: Point<T, N>) -> Self::Output {
         Vector::from(self) - Vector::from(rhs)
     }
@@ -265,6 +321,7 @@ impl<T: Scalar, const N: usize> std::ops::Sub<Point<T, N>> for Point<T, N> {
 impl<T: Scalar, const N: usize> std::ops::Add<Point<T, N>> for Vector<T, N> {
     type Output = Point<T, N>;
 
+    #[inline]
     fn add(self, rhs: Point<T, N>) -> Self::Output {
         Point::from(self) + rhs
     }
@@ -272,6 +329,7 @@ impl<T: Scalar, const N: usize> std::ops::Add<Point<T, N>> for Vector<T, N> {
 impl<T: Scalar, const N: usize> std::ops::Add<Vector<T, N>> for Point<T, N> {
     type Output = Point<T, N>;
 
+    #[inline]
     fn add(self, rhs: Vector<T, N>) -> Self::Output {
         self + Point::from(rhs)
     }
@@ -279,6 +337,7 @@ impl<T: Scalar, const N: usize> std::ops::Add<Vector<T, N>> for Point<T, N> {
 impl<T: Scalar, const N: usize> std::ops::Sub<Vector<T, N>> for Point<T, N> {
     type Output = Point<T, N>;
 
+    #[inline]
     fn sub(self, rhs: Vector<T, N>) -> Self::Output {
         Point::from(self - Point::from(rhs))
     }
