@@ -1,10 +1,15 @@
 pub use num_traits::Float as NumTraitsGFloat;
 pub use num_traits::{Num, NumAssignOps, One, Zero};
+use std::fmt::Debug;
 use std::ops::Neg;
 
 pub type Float = f32;
 pub type Int = i32;
 pub type UInt = u32;
+
+pub trait AlmostEqual {
+    fn almost_eq(&self, other: &Self) -> bool;
+}
 
 pub trait LowestHighest {
     fn lowest() -> Self;
@@ -41,14 +46,53 @@ pub trait Consts {
 }
 
 // signed scalar
-pub trait Scalar: Num + NumAssignOps + PartialOrd<Self> + LowestHighest + Copy {}
+pub trait Scalar:
+    Num + NumAssignOps + PartialOrd<Self> + LowestHighest + Copy + Debug + AlmostEqual
+{
+}
 pub trait SignedScalar: Scalar + std::ops::Neg<Output = Self> {}
 
-pub trait GFloat: Scalar + NumTraitsGFloat + Consts + GFloatBits + std::fmt::Debug {}
-impl<T: num_traits::Num + NumAssignOps + PartialOrd + LowestHighest + Copy> Scalar for T {}
+pub trait GFloat: Scalar + NumTraitsGFloat + Consts + GFloatBits {}
+impl<
+        T: num_traits::Num + NumAssignOps + PartialOrd + LowestHighest + Copy + Debug + AlmostEqual,
+    > Scalar for T
+{
+}
+
+impl AlmostEqual for i8 {
+    fn almost_eq(&self, other: &Self) -> bool {
+        *self == *other
+    }
+}
+impl AlmostEqual for i16 {
+    fn almost_eq(&self, other: &Self) -> bool {
+        *self == *other
+    }
+}
+impl AlmostEqual for i32 {
+    fn almost_eq(&self, other: &Self) -> bool {
+        *self == *other
+    }
+}
+impl AlmostEqual for i64 {
+    fn almost_eq(&self, other: &Self) -> bool {
+        *self == *other
+    }
+}
+impl AlmostEqual for f32 {
+    fn almost_eq(&self, other: &Self) -> bool {
+        fequals(*self, *other)
+    }
+}
+impl AlmostEqual for f64 {
+    fn almost_eq(&self, other: &Self) -> bool {
+        fequals(*self, *other)
+    }
+}
+
 impl<T: Scalar + Neg<Output = Self>> SignedScalar for T {}
 
-impl<T: Scalar + NumTraitsGFloat + Consts + GFloatBits + std::fmt::Debug> GFloat for T {}
+impl<T: Scalar + NumTraitsGFloat + Consts + GFloatBits + Debug> GFloat for T {}
 
 impl LowestHighest for i32 {
     fn lowest() -> Self {
@@ -299,6 +343,10 @@ pub fn fequals<T: GFloat>(a: T, b: T) -> bool {
     // https://floating-point-gui.de/errors/comparison/
 
     let diff = (a - b).abs();
+    if diff < T::FEQUALS_EPSILON {
+        return true;
+    }
+
     let largest = max(a.abs(), b.abs());
 
     diff < largest * T::FEQUALS_EPSILON
