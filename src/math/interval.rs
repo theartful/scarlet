@@ -393,7 +393,7 @@ impl<T: GFloat> std::ops::Rem<Self> for Interval<T> {
     }
 }
 impl<T: GFloat> std::ops::RemAssign<Self> for Interval<T> {
-    fn rem_assign(&mut self, _rhs: Self) -> () {
+    fn rem_assign(&mut self, _rhs: Self) {
         std::unimplemented!();
     }
 }

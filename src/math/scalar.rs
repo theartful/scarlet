@@ -59,6 +59,26 @@ impl<
 {
 }
 
+impl AlmostEqual for u8 {
+    fn almost_eq(&self, other: &Self) -> bool {
+        *self == *other
+    }
+}
+impl AlmostEqual for u16 {
+    fn almost_eq(&self, other: &Self) -> bool {
+        *self == *other
+    }
+}
+impl AlmostEqual for u32 {
+    fn almost_eq(&self, other: &Self) -> bool {
+        *self == *other
+    }
+}
+impl AlmostEqual for u64 {
+    fn almost_eq(&self, other: &Self) -> bool {
+        *self == *other
+    }
+}
 impl AlmostEqual for i8 {
     fn almost_eq(&self, other: &Self) -> bool {
         *self == *other
@@ -109,6 +129,15 @@ impl LowestHighest for i64 {
     }
     fn highest() -> Self {
         std::i64::MAX
+    }
+}
+
+impl LowestHighest for u8 {
+    fn lowest() -> Self {
+        0
+    }
+    fn highest() -> Self {
+        std::u8::MAX
     }
 }
 

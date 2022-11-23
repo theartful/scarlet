@@ -175,6 +175,9 @@ impl<T: Scalar, const N: usize, U> std::ops::Add<GenericVector<T, N, U>>
     #[inline]
     fn add(self, rhs: GenericVector<T, N, U>) -> Self::Output {
         let mut vec: [T; N] = self.vec;
+
+        // this is more readable and more easily optimizable than using iterators
+        #[allow(clippy::needless_range_loop)]
         for i in 0..N {
             vec[i] += rhs.vec[i];
         }
@@ -204,9 +207,13 @@ impl<T: Scalar, const N: usize, U: HasSub> std::ops::Sub<GenericVector<T, N, U>>
     #[inline]
     fn sub(self, rhs: GenericVector<T, N, U>) -> Self::Output {
         let mut vec: [T; N] = self.vec;
+
+        // this is more readable and more easily optimizable than using iterators
+        #[allow(clippy::needless_range_loop)]
         for i in 0..N {
             vec[i] -= rhs.vec[i];
         }
+
         Self {
             vec,
             p: std::marker::PhantomData,

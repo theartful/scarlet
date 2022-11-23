@@ -7,9 +7,15 @@ pub type Matrix4x4f = Matrix4x4<Float>;
 pub type Matrix4x4i = Matrix4x4<Int>;
 pub type Transformf = Transform<Float>;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Matrix4x4<T: Scalar> {
     pub data: [[T; 4]; 4],
+}
+
+impl<T: Scalar> Default for Matrix4x4<T> {
+    fn default() -> Self {
+        Self::identity()
+    }
 }
 
 impl<T: Scalar> Matrix4x4<T> {
@@ -145,7 +151,7 @@ impl<T: Scalar> Mul<T> for Matrix4x4<T> {
     }
 }
 
-impl<'a, T: Scalar> Mul<Matrix4x4<T>> for Matrix4x4<T> {
+impl<T: Scalar> Mul<Matrix4x4<T>> for Matrix4x4<T> {
     type Output = Matrix4x4<T>;
     fn mul(self, rhs: Matrix4x4<T>) -> Self::Output {
         let mut res = Self::zero();

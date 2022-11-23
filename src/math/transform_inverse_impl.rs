@@ -2,7 +2,7 @@ use crate::math::scalar::GFloat;
 
 #[inline(always)]
 pub fn inverse_impl<T: GFloat>(data: &[[T; 4]; 4]) -> [[T; 4]; 4] {
-    inverse_impl_adjugate(&data)
+    inverse_impl_adjugate(data)
 }
 
 #[inline(always)]
