@@ -1,7 +1,7 @@
-pub use crate::interval::Interval;
-pub use crate::scalar::{Float, GFloat, Int};
-pub use crate::vector::{GenericVector, Point3, Vector3};
-pub use crate::vector_traits::Norm;
+pub use crate::math::interval::Interval;
+pub use crate::math::scalar::{Float, GFloat, Int};
+pub use crate::math::vector::{GenericVector, Point3, Vector3};
+pub use crate::math::vector_traits::Norm;
 
 pub type Vector3fi = Vector3<Interval<Float>>;
 pub type Vector3ii = Vector3<Interval<Int>>;

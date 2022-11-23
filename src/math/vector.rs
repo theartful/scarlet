@@ -1,5 +1,5 @@
-use crate::scalar::{AlmostEqual, Float, Int, Scalar, SignedScalar, UInt};
-pub use crate::vector_traits::{Dimension, InnerProduct, InnerScalar, Norm};
+use crate::math::scalar::{AlmostEqual, Float, Int, Scalar, SignedScalar, UInt};
+pub use crate::math::vector_traits::{Dimension, InnerProduct, InnerScalar, Norm};
 
 pub type Vector<T, const N: usize> = GenericVector<T, N, VectorMarker>;
 pub type Vector4<T> = Vector<T, 4>;
@@ -403,7 +403,7 @@ mod tests {
 
     #[test]
     fn normalize() {
-        use crate::scalar::fequals;
+        use crate::math::scalar::fequals;
 
         let p1 = Vector3::<f64>::new(1.3, 2.4, 3.6);
         let p2 = Vector3::<f64>::new(4.6, 3.2, 9.98);

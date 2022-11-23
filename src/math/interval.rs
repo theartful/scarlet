@@ -1,4 +1,6 @@
-use crate::scalar::{fequals, max, min, AlmostEqual, Float, GFloat, GFloatBits, LowestHighest};
+use crate::math::scalar::{
+    fequals, max, min, AlmostEqual, Float, GFloat, GFloatBits, LowestHighest,
+};
 
 // ideally we should change floating point rounding mode to positive and negative
 // infinity before doing operations
