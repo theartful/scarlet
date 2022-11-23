@@ -1,4 +1,4 @@
-use crate::scalar::*;
+use crate::scalar::{fequals, max, min, AlmostEqual, Float, GFloat, GFloatBits, LowestHighest};
 
 // ideally we should change floating point rounding mode to positive and negative
 // infinity before doing operations
@@ -15,23 +15,29 @@ pub struct Interval<T: GFloat> {
 pub type Intervalf = Interval<Float>;
 
 impl<T: GFloat> Interval<T> {
+    #[inline]
     pub fn new(inf: T, sup: T) -> Self {
         use more_asserts::assert_ge;
         assert_ge!(sup, inf);
         Self { inf, sup }
     }
+    #[inline]
     pub fn is_positive(&self) -> bool {
         self.inf > T::zero()
     }
+    #[inline]
     pub fn is_negative(&self) -> bool {
         self.sup < T::zero()
     }
+    #[inline]
     pub fn is_nonpositive(&self) -> bool {
         self.sup <= T::zero()
     }
+    #[inline]
     pub fn is_nonnegative(&self) -> bool {
         self.inf >= T::zero()
     }
+    #[inline]
     pub fn square(&self) -> Self {
         // adapted from CGAL
         if self.is_nonnegative() {
@@ -49,6 +55,7 @@ impl<T: GFloat> Interval<T> {
             Self::new(T::zero(), (abs_max * abs_max).next_up())
         }
     }
+    #[inline]
     pub fn sqrt(&self) -> Option<Self> {
         if self.is_nonnegative() {
             Some(Self::new(
@@ -59,22 +66,33 @@ impl<T: GFloat> Interval<T> {
             None
         }
     }
+    #[inline]
     pub fn approx(&self) -> T {
         (self.inf + self.sup) * T::from(0.5).unwrap()
     }
+    #[inline]
     pub fn in_range(&self, t0: T, t1: T) -> bool {
         self.inf >= t0 && self.sup <= t1
     }
+    #[inline]
     pub fn is_exact(&self) -> bool {
         // should we use fequals instead?
         self.inf == self.sup
     }
+    #[inline]
     pub fn contains(&self, t: T) -> bool {
         self.sup >= t && self.inf <= t
     }
 }
 
+impl<T: GFloat> AlmostEqual for Interval<T> {
+    /// checks that the two intervals almost have the same bounds
+    fn almost_eq(&self, other: &Self) -> bool {
+        fequals(self.inf, other.inf) && fequals(self.sup, other.sup)
+    }
+}
 impl<T: GFloat> From<T> for Interval<T> {
+    #[inline]
     fn from(t: T) -> Interval<T> {
         Interval::new(t, t)
     }
@@ -93,11 +111,13 @@ impl<T: GFloat> From<T> for Interval<T> {
 //     }
 // }
 impl From<Interval<f32>> for f32 {
+    #[inline]
     fn from(t: Interval<f32>) -> f32 {
         t.approx()
     }
 }
 impl From<Interval<f64>> for f64 {
+    #[inline]
     fn from(t: Interval<f64>) -> f64 {
         t.approx()
     }
@@ -105,6 +125,7 @@ impl From<Interval<f64>> for f64 {
 impl<T: GFloat> std::ops::Add<Self> for Interval<T> {
     type Output = Self;
 
+    #[inline]
     fn add(self, rhs: Self) -> Self::Output {
         Self::new(
             (self.inf + rhs.inf).next_down(),
@@ -115,6 +136,7 @@ impl<T: GFloat> std::ops::Add<Self> for Interval<T> {
 impl<T: GFloat> std::ops::Sub<Self> for Interval<T> {
     type Output = Self;
 
+    #[inline]
     fn sub(self, rhs: Self) -> Self::Output {
         Self::new(
             (self.inf - rhs.sup).next_down(),
@@ -125,6 +147,7 @@ impl<T: GFloat> std::ops::Sub<Self> for Interval<T> {
 impl<T: GFloat> std::ops::Add<T> for Interval<T> {
     type Output = Self;
 
+    #[inline]
     fn add(self, rhs: T) -> Self::Output {
         Self::new((self.inf + rhs).next_down(), (self.sup + rhs).next_up())
     }
@@ -132,6 +155,7 @@ impl<T: GFloat> std::ops::Add<T> for Interval<T> {
 impl<T: GFloat> std::ops::Sub<T> for Interval<T> {
     type Output = Self;
 
+    #[inline]
     fn sub(self, rhs: T) -> Self::Output {
         Self::new((self.inf - rhs).next_down(), (self.sup - rhs).next_up())
     }
@@ -142,6 +166,7 @@ impl<T: GFloat> std::ops::Mul<Self> for Interval<T> {
     // adapted from CGAL
     // they also avoid NaNs if possible which is not done here
     // is using the straight forward min/max version better?
+    #[inline]
     fn mul(self, rhs: Self) -> Self::Output {
         let a = &self;
         let b = &rhs;
@@ -184,6 +209,7 @@ impl<T: GFloat> std::ops::Mul<Self> for Interval<T> {
 impl<T: GFloat> std::ops::Mul<T> for Interval<T> {
     type Output = Self;
 
+    #[inline]
     fn mul(self, rhs: T) -> Self::Output {
         if rhs >= T::zero() {
             Self::new((self.inf * rhs).next_down(), (self.sup * rhs).next_up())
@@ -193,6 +219,7 @@ impl<T: GFloat> std::ops::Mul<T> for Interval<T> {
     }
 }
 impl<T: GFloat> std::ops::MulAssign<T> for Interval<T> {
+    #[inline]
     fn mul_assign(&mut self, rhs: T) {
         *self = *self * rhs;
     }
@@ -200,6 +227,7 @@ impl<T: GFloat> std::ops::MulAssign<T> for Interval<T> {
 impl<T: GFloat> std::ops::Div<Self> for Interval<T> {
     type Output = Self;
 
+    #[inline]
     fn div(self, rhs: Self) -> Self::Output {
         let a = &self;
         let b = &rhs;
@@ -229,6 +257,7 @@ impl<T: GFloat> std::ops::Div<Self> for Interval<T> {
     }
 }
 impl<T: GFloat> std::ops::DivAssign<T> for Interval<T> {
+    #[inline]
     fn div_assign(&mut self, rhs: T) {
         *self = *self / rhs;
     }
@@ -236,6 +265,7 @@ impl<T: GFloat> std::ops::DivAssign<T> for Interval<T> {
 impl<T: GFloat> std::ops::Div<T> for Interval<T> {
     type Output = Self;
 
+    #[inline]
     fn div(self, rhs: T) -> Self::Output {
         if rhs > T::zero() {
             Self::new((self.inf / rhs).next_down(), (self.sup / rhs).next_up())
@@ -247,21 +277,25 @@ impl<T: GFloat> std::ops::Div<T> for Interval<T> {
     }
 }
 impl<T: GFloat> std::ops::AddAssign<Self> for Interval<T> {
+    #[inline]
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;
     }
 }
 impl<T: GFloat> std::ops::SubAssign<Self> for Interval<T> {
+    #[inline]
     fn sub_assign(&mut self, rhs: Self) {
         *self = *self - rhs;
     }
 }
 impl<T: GFloat> std::ops::MulAssign<Self> for Interval<T> {
+    #[inline]
     fn mul_assign(&mut self, rhs: Self) {
         *self = *self * rhs;
     }
 }
 impl<T: GFloat> std::ops::DivAssign<Self> for Interval<T> {
+    #[inline]
     fn div_assign(&mut self, rhs: Self) {
         *self = *self / rhs;
     }
@@ -269,16 +303,20 @@ impl<T: GFloat> std::ops::DivAssign<Self> for Interval<T> {
 impl<T: GFloat> std::ops::Neg for Interval<T> {
     type Output = Self;
 
+    #[inline]
     fn neg(self) -> Self::Output {
         Self::new(-self.sup, -self.inf)
     }
 }
 impl<T: GFloat> std::cmp::PartialEq<Self> for Interval<T> {
+    #[inline]
+    /// checks that the two intervals have the same bounds
     fn eq(&self, other: &Self) -> bool {
         self.inf == other.inf && self.sup == other.sup
     }
 }
 impl<T: GFloat> std::cmp::PartialOrd<Self> for Interval<T> {
+    #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         if self == other {
             Some(std::cmp::Ordering::Equal)
@@ -292,11 +330,13 @@ impl<T: GFloat> std::cmp::PartialOrd<Self> for Interval<T> {
     }
 }
 impl<T: GFloat> std::cmp::PartialEq<T> for Interval<T> {
+    #[inline]
     fn eq(&self, other: &T) -> bool {
         self.is_exact() && self.inf == *other
     }
 }
 impl<T: GFloat> std::cmp::PartialOrd<T> for Interval<T> {
+    #[inline]
     fn partial_cmp(&self, other: &T) -> Option<std::cmp::Ordering> {
         if self == other {
             Some(std::cmp::Ordering::Equal)
@@ -310,22 +350,27 @@ impl<T: GFloat> std::cmp::PartialOrd<T> for Interval<T> {
     }
 }
 impl<T: GFloat> num_traits::Zero for Interval<T> {
+    #[inline]
     fn zero() -> Self {
         Self::new(T::zero(), T::zero())
     }
+    #[inline]
     fn is_zero(&self) -> bool {
         self.inf == T::zero() && self.sup == T::zero()
     }
 }
 impl<T: GFloat> num_traits::One for Interval<T> {
+    #[inline]
     fn one() -> Self {
         Self::new(T::one(), T::one())
     }
 }
 impl<T: GFloat> LowestHighest for Interval<T> {
+    #[inline]
     fn lowest() -> Self {
         Self::from(T::lowest())
     }
+    #[inline]
     fn highest() -> Self {
         Self::from(T::highest())
     }
@@ -352,9 +397,11 @@ impl<T: GFloat> std::ops::RemAssign<Self> for Interval<T> {
 }
 
 impl<T: GFloat> GFloatBits for Interval<T> {
+    #[inline]
     fn next_up(self) -> Self {
         Self::new(self.inf.next_up(), self.sup.next_up())
     }
+    #[inline]
     fn next_down(self) -> Self {
         Self::new(self.inf.next_down(), self.sup.next_down())
     }
