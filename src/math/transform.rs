@@ -1,6 +1,6 @@
 use crate::math::scalar::{AlmostEqual, Float, GFloat, Int, Scalar};
 use crate::math::transform_inverse_impl::inverse_impl;
-use crate::math::vector::{InnerProduct, InnerScalar, Norm, Normal3, Point3, Vector3, Vector4};
+use crate::math::vector::{InnerScalar, Norm, Normal3, Point3, Vector3, Vector4};
 use std::ops::{Add, Div, Index, IndexMut, Mul};
 
 pub type Matrix4x4f = Matrix4x4<Float>;

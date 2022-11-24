@@ -1,4 +1,4 @@
-use crate::math::scalar::{AlmostEqual, Float, Int, Scalar, SignedScalar, UInt};
+use crate::math::scalar::{AlmostEqual, Float, GFloat, Int, Scalar, SignedScalar, UInt};
 pub use crate::math::vector_traits::{Dimension, InnerProduct, InnerScalar, Norm};
 
 pub type Vector<T, const N: usize> = GenericVector<T, N, VectorMarker>;
@@ -356,6 +356,55 @@ impl Norm for Vector3<f32> {}
 impl Norm for Vector3<f64> {}
 impl Norm for Vector4<f32> {}
 impl Norm for Vector4<f64> {}
+
+// for convenience so that we don't have to import InnerProduct
+impl<T: SignedScalar, const N: usize, U> GenericVector<T, N, U> {
+    #[inline]
+    pub fn dot<I>(&self, rhs: I) -> <Self as InnerScalar>::ScalarType
+    where
+        U: HasSub,
+        Self: InnerProduct<I>,
+    {
+        <Self as InnerProduct<I>>::dot(self, rhs)
+    }
+}
+
+// for convenience so that we don't have to import Norm
+impl<T: SignedScalar, const N: usize, U> GenericVector<T, N, U>
+where
+    Self: Norm,
+{
+    #[inline]
+    pub fn square_norm(self) -> <Self as InnerScalar>::ScalarType {
+        <Self as Norm>::square_norm(self)
+    }
+    #[inline]
+    pub fn norm(self) -> <Self as InnerScalar>::ScalarType
+    where
+        <Self as InnerScalar>::ScalarType: GFloat,
+    {
+        <Self as Norm>::norm(self)
+    }
+    #[inline]
+    pub fn square_distance(self, vec: Self) -> <Self as InnerScalar>::ScalarType {
+        <Self as Norm>::square_distance(self, vec)
+    }
+    #[inline]
+    pub fn distance(self, vec: Self) -> <Self as InnerScalar>::ScalarType
+    where
+        <Self as InnerScalar>::ScalarType: GFloat,
+        Self: std::ops::Sub<Self, Output = Self>,
+    {
+        <Self as Norm>::distance(self, vec)
+    }
+    #[inline]
+    pub fn normalize(self) -> Self
+    where
+        <Self as InnerScalar>::ScalarType: GFloat,
+    {
+        <Self as Norm>::normalize(self)
+    }
+}
 
 #[cfg(test)]
 mod tests {
