@@ -1,4 +1,4 @@
-use crate::math::scalar::{AlmostEqual, Float, GFloat, Int, Scalar, SignedScalar, UInt};
+use crate::math::scalar::{max, min, AlmostEqual, Float, GFloat, Int, Scalar, SignedScalar, UInt};
 pub use crate::math::vector_traits::{Dimension, InnerProduct, InnerScalar, Norm};
 
 pub type Vector<T, const N: usize> = GenericVector<T, N, VectorMarker>;
@@ -130,6 +130,30 @@ impl<T: Scalar, const N: usize, U> GenericVector<T, N, U> {
         debug_assert!(N > 3);
         &mut self.vec[3]
     }
+
+    #[inline(always)]
+    pub fn min(self, rhs: Self) -> Self {
+        let mut vec = self.vec;
+
+        // this is more readable and more easily optimizable than using iterators
+        #[allow(clippy::needless_range_loop)]
+        for i in 0..N {
+            vec[i] = min(vec[i], rhs.vec[i]);
+        }
+        Self::from(vec)
+    }
+
+    #[inline(always)]
+    pub fn max(self, rhs: Self) -> Self {
+        let mut vec = self.vec;
+
+        // this is more readable and more easily optimizable than using iterators
+        #[allow(clippy::needless_range_loop)]
+        for i in 0..N {
+            vec[i] = max(vec[i], rhs.vec[i]);
+        }
+        Self::from(vec)
+    }
 }
 
 impl<T: Scalar, const N: usize, U> InnerScalar for GenericVector<T, N, U> {
@@ -181,10 +205,43 @@ impl<T: Scalar, const N: usize, U> std::ops::Add<GenericVector<T, N, U>>
         for i in 0..N {
             vec[i] += rhs.vec[i];
         }
-        Self {
-            vec,
-            p: std::marker::PhantomData,
+        Self::from(vec)
+    }
+}
+
+impl<T: Scalar, const N: usize, U> std::ops::Mul<GenericVector<T, N, U>>
+    for GenericVector<T, N, U>
+{
+    type Output = GenericVector<T, N, U>;
+
+    #[inline]
+    fn mul(self, rhs: GenericVector<T, N, U>) -> Self::Output {
+        let mut vec: [T; N] = self.vec;
+
+        // this is more readable and more easily optimizable than using iterators
+        #[allow(clippy::needless_range_loop)]
+        for i in 0..N {
+            vec[i] *= rhs.vec[i];
         }
+        Self::from(vec)
+    }
+}
+
+impl<T: Scalar, const N: usize, U> std::ops::Div<GenericVector<T, N, U>>
+    for GenericVector<T, N, U>
+{
+    type Output = GenericVector<T, N, U>;
+
+    #[inline]
+    fn div(self, rhs: GenericVector<T, N, U>) -> Self::Output {
+        let mut vec: [T; N] = self.vec;
+
+        // this is more readable and more easily optimizable than using iterators
+        #[allow(clippy::needless_range_loop)]
+        for i in 0..N {
+            vec[i] /= rhs.vec[i];
+        }
+        Self::from(vec)
     }
 }
 
@@ -261,7 +318,16 @@ impl<T: Scalar, const N: usize, U> std::ops::Mul<T> for GenericVector<T, N, U> {
 
     #[inline]
     fn mul(self, rhs: T) -> Self::Output {
-        Self::from(self.vec.map(|x| x * rhs))
+        let mut vec = self.vec;
+
+        // this is more readable and more easily optimizable than using iterators
+        // also using map incurs a performance penalty due to it being monomorphized
+        // in a different codegen unit
+        #[allow(clippy::needless_range_loop)]
+        for i in 0..N {
+            vec[i] *= rhs;
+        }
+        Self::from(vec)
     }
 }
 
@@ -270,7 +336,16 @@ impl<T: Scalar, const N: usize, U> std::ops::Div<T> for GenericVector<T, N, U> {
 
     #[inline]
     fn div(self, rhs: T) -> Self::Output {
-        Self::from(self.vec.map(|x| x / rhs))
+        let mut vec = self.vec;
+
+        // this is more readable and more easily optimizable than using iterators
+        // also using map incurs a performance penalty due to it being monomorphized
+        // in a different codegen unit
+        #[allow(clippy::needless_range_loop)]
+        for i in 0..N {
+            vec[i] /= rhs;
+        }
+        Self::from(vec)
     }
 }
 
