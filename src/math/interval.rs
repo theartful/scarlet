@@ -1,6 +1,9 @@
 use crate::math::scalar::{
-    fequals, max, min, AlmostEqual, Float, GFloat, GFloatBits, LowestHighest,
+    fequals, max, min, AlmostEqual, Float, GFloat, LowestHighest, Num, One, Zero,
 };
+use std::cmp::{Ordering, PartialEq, PartialOrd};
+
+pub type Intervalf = Interval<Float>;
 
 // ideally we should change floating point rounding mode to positive and negative
 // infinity before doing operations
@@ -14,13 +17,15 @@ pub struct Interval<T: GFloat> {
     pub sup: T,
 }
 
-pub type Intervalf = Interval<Float>;
-
 impl<T: GFloat> Interval<T> {
     #[inline]
     pub fn new(inf: T, sup: T) -> Self {
-        use more_asserts::assert_ge;
-        assert_ge!(sup, inf);
+        debug_assert!(
+            sup >= inf,
+            "Invalid interval! sup = {:?}, inf = {:?}",
+            sup,
+            inf
+        );
         Self { inf, sup }
     }
     #[inline]
@@ -100,8 +105,8 @@ impl<T: GFloat> From<T> for Interval<T> {
     }
 }
 // can't do this
-// impl<T: GFloat> From<Interval<f32>> for f32 {
-//     fn from(t: Interval<f32>) -> f32 {
+// impl<T: GFloat> From<Interval<T>> for T {
+//     fn from(t: Interval<T>) -> T {
 //         t.approx()
 //     }
 // }
@@ -310,48 +315,48 @@ impl<T: GFloat> std::ops::Neg for Interval<T> {
         Self::new(-self.sup, -self.inf)
     }
 }
-impl<T: GFloat> std::cmp::PartialEq<Self> for Interval<T> {
+impl<T: GFloat> PartialEq<Self> for Interval<T> {
     #[inline]
     /// checks that the two intervals have the same bounds
     fn eq(&self, other: &Self) -> bool {
         self.inf == other.inf && self.sup == other.sup
     }
 }
-impl<T: GFloat> std::cmp::PartialOrd<Self> for Interval<T> {
+impl<T: GFloat> PartialOrd<Self> for Interval<T> {
     #[inline]
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         if self == other {
-            Some(std::cmp::Ordering::Equal)
+            Some(Ordering::Equal)
         } else if self.sup < other.inf {
-            Some(std::cmp::Ordering::Less)
+            Some(Ordering::Less)
         } else if other.sup < self.inf {
-            Some(std::cmp::Ordering::Greater)
+            Some(Ordering::Greater)
         } else {
             None
         }
     }
 }
-impl<T: GFloat> std::cmp::PartialEq<T> for Interval<T> {
+impl<T: GFloat> PartialEq<T> for Interval<T> {
     #[inline]
     fn eq(&self, other: &T) -> bool {
         self.is_exact() && self.inf == *other
     }
 }
-impl<T: GFloat> std::cmp::PartialOrd<T> for Interval<T> {
+impl<T: GFloat> PartialOrd<T> for Interval<T> {
     #[inline]
-    fn partial_cmp(&self, other: &T) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &T) -> Option<Ordering> {
         if self == other {
-            Some(std::cmp::Ordering::Equal)
+            Some(Ordering::Equal)
         } else if self.sup < *other {
-            Some(std::cmp::Ordering::Less)
+            Some(Ordering::Less)
         } else if *other < self.inf {
-            Some(std::cmp::Ordering::Greater)
+            Some(Ordering::Greater)
         } else {
             None
         }
     }
 }
-impl<T: GFloat> num_traits::Zero for Interval<T> {
+impl<T: GFloat> Zero for Interval<T> {
     #[inline]
     fn zero() -> Self {
         Self::new(T::zero(), T::zero())
@@ -361,7 +366,7 @@ impl<T: GFloat> num_traits::Zero for Interval<T> {
         self.inf == T::zero() && self.sup == T::zero()
     }
 }
-impl<T: GFloat> num_traits::One for Interval<T> {
+impl<T: GFloat> One for Interval<T> {
     #[inline]
     fn one() -> Self {
         Self::new(T::one(), T::one())
@@ -377,7 +382,7 @@ impl<T: GFloat> LowestHighest for Interval<T> {
         Self::from(T::highest())
     }
 }
-impl<T: GFloat> num_traits::Num for Interval<T> {
+impl<T: GFloat> Num for Interval<T> {
     type FromStrRadixErr = T::FromStrRadixErr;
     fn from_str_radix(s: &str, r: u32) -> std::result::Result<Self, Self::FromStrRadixErr> {
         match T::from_str_radix(s, r) {
@@ -395,17 +400,6 @@ impl<T: GFloat> std::ops::Rem<Self> for Interval<T> {
 impl<T: GFloat> std::ops::RemAssign<Self> for Interval<T> {
     fn rem_assign(&mut self, _rhs: Self) {
         std::unimplemented!();
-    }
-}
-
-impl<T: GFloat> GFloatBits for Interval<T> {
-    #[inline]
-    fn next_up(self) -> Self {
-        Self::new(self.inf.next_up(), self.sup.next_up())
-    }
-    #[inline]
-    fn next_down(self) -> Self {
-        Self::new(self.inf.next_down(), self.sup.next_down())
     }
 }
 
