@@ -245,7 +245,7 @@ mod tests {
                 Point3::new(bbox.xmax(), bbox.ymax(), bbox.zmax()),
             ];
 
-            // chose two faces by random
+            // choose two faces by random
             let mut faces = [
                 (ps[0], ps[1], ps[2], ps[3]),
                 (ps[4], ps[5], ps[6], ps[7]),
@@ -261,11 +261,16 @@ mod tests {
             let face1 = faces[1];
 
             let dist_t = Uniform::new_inclusive(0.0, 1.0);
-            let t0 = dist_t.sample(&mut rng);
-            let t1 = dist_t.sample(&mut rng);
 
-            let p0 = face0.0 + (face0.1 - face0.0) * t0 + (face0.2 - face0.0) * t1;
-            let p1 = face1.0 + (face1.1 - face1.0) * t0 + (face1.2 - face1.0) * t1;
+            // sample a random point from the first face
+            let p0 = face0.0
+                + (face0.1 - face0.0) * dist_t.sample(&mut rng)
+                + (face0.2 - face0.0) * dist_t.sample(&mut rng);
+
+            // sample a random point from the second face
+            let p1 = face1.0
+                + (face1.1 - face1.0) * dist_t.sample(&mut rng)
+                + (face1.2 - face1.0) * dist_t.sample(&mut rng);
 
             // create ray connecting p0 and p1
             let dir = p1 - p0;
