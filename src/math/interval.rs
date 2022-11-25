@@ -5,14 +5,15 @@ use std::cmp::{Ordering, PartialEq, PartialOrd};
 
 pub type Intervalf = Interval<Float>;
 
-// ideally we should change floating point rounding mode to positive and negative
-// infinity before doing operations
-// but we always extend the bounds by one ulp instead
-
-// the invariant is inf >= sup
+/// A struct representing an inclusive interval, for the purpose of being used
+/// in interval arithmetic
+/// This implementation does not currently have the tighest error bounds, but
+/// it aims to at least have correct bounds (i.e. the inclusion property holds)
+/// ideally we should change floating point rounding mode to positive or negative
+/// infinity before doing operations but we always over extend the bounds by one
+/// ulp instead
 #[derive(Debug, Clone, Copy)]
 pub struct Interval<T: GFloat> {
-    // inclusive bounds
     pub inf: T,
     pub sup: T,
 }
@@ -102,6 +103,12 @@ impl<T: GFloat> From<T> for Interval<T> {
     #[inline]
     fn from(t: T) -> Interval<T> {
         Interval::new(t, t)
+    }
+}
+impl<T: GFloat> From<(T, T)> for Interval<T> {
+    #[inline]
+    fn from(t: (T, T)) -> Interval<T> {
+        Interval::new(t.0, t.1)
     }
 }
 // can't do this

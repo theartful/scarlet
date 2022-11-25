@@ -22,27 +22,27 @@ pub trait GFloatBits {
 }
 
 pub trait Consts {
-    const PI: Self;
-    const TAU: Self;
-    const FRAC_PI_2: Self;
-    const FRAC_PI_3: Self;
-    const FRAC_PI_4: Self;
-    const FRAC_PI_6: Self;
-    const FRAC_PI_8: Self;
-    const FRAC_1_PI: Self;
-    const FRAC_2_PI: Self;
-    const FRAC_2_SQRT_PI: Self;
-    const SQRT_2: Self;
-    const FRAC_1_SQRT_2: Self;
-    const E: Self;
-    const LOG2_E: Self;
-    const LOG2_10: Self;
-    const LOG10_E: Self;
-    const LOG10_2: Self;
-    const LN_2: Self;
-    const LN_10: Self;
-    const EPSILON: Self;
-    const FEQUALS_EPSILON: Self;
+    fn pi() -> Self;
+    fn tau() -> Self;
+    fn frac_pi_2() -> Self;
+    fn frac_pi_3() -> Self;
+    fn frac_pi_4() -> Self;
+    fn frac_pi_6() -> Self;
+    fn frac_pi_8() -> Self;
+    fn frac_1_pi() -> Self;
+    fn frac_2_pi() -> Self;
+    fn frac_2_sqrt_pi() -> Self;
+    fn sqrt_2() -> Self;
+    fn frac_1_sqrt_2() -> Self;
+    fn e() -> Self;
+    fn log2_e() -> Self;
+    fn log2_10() -> Self;
+    fn log10_e() -> Self;
+    fn log10_2() -> Self;
+    fn ln_2() -> Self;
+    fn ln_10() -> Self;
+    fn abs_epsilon() -> Self;
+    fn rel_epsilon() -> Self;
 }
 
 // signed scalar
@@ -178,51 +178,177 @@ impl LowestHighest for f64 {
 }
 
 impl Consts for f32 {
-    const PI: Self = std::f32::consts::PI;
-    const TAU: Self = std::f32::consts::TAU;
-    const FRAC_PI_2: Self = std::f32::consts::FRAC_PI_2;
-    const FRAC_PI_3: Self = std::f32::consts::FRAC_PI_3;
-    const FRAC_PI_4: Self = std::f32::consts::FRAC_PI_4;
-    const FRAC_PI_6: Self = std::f32::consts::FRAC_PI_6;
-    const FRAC_PI_8: Self = std::f32::consts::FRAC_PI_8;
-    const FRAC_1_PI: Self = std::f32::consts::FRAC_1_PI;
-    const FRAC_2_PI: Self = std::f32::consts::FRAC_2_PI;
-    const FRAC_2_SQRT_PI: Self = std::f32::consts::FRAC_2_SQRT_PI;
-    const SQRT_2: Self = std::f32::consts::SQRT_2;
-    const FRAC_1_SQRT_2: Self = std::f32::consts::FRAC_1_SQRT_2;
-    const E: Self = std::f32::consts::E;
-    const LOG2_E: Self = std::f32::consts::LOG2_E;
-    const LOG2_10: Self = std::f32::consts::LOG2_10;
-    const LOG10_E: Self = std::f32::consts::LOG10_E;
-    const LOG10_2: Self = std::f32::consts::LOG10_2;
-    const LN_2: Self = std::f32::consts::LN_2;
-    const LN_10: Self = std::f32::consts::LN_10;
-    const EPSILON: Self = f32::EPSILON;
-    const FEQUALS_EPSILON: Self = 1e-6_f32;
+    #[inline]
+    fn pi() -> Self {
+        std::f32::consts::PI
+    }
+    #[inline]
+    fn tau() -> Self {
+        std::f32::consts::TAU
+    }
+    #[inline]
+    fn frac_pi_2() -> Self {
+        std::f32::consts::FRAC_PI_2
+    }
+    #[inline]
+    fn frac_pi_3() -> Self {
+        std::f32::consts::FRAC_PI_3
+    }
+    #[inline]
+    fn frac_pi_4() -> Self {
+        std::f32::consts::FRAC_PI_4
+    }
+    #[inline]
+    fn frac_pi_6() -> Self {
+        std::f32::consts::FRAC_PI_6
+    }
+    #[inline]
+    fn frac_pi_8() -> Self {
+        std::f32::consts::FRAC_PI_8
+    }
+    #[inline]
+    fn frac_1_pi() -> Self {
+        std::f32::consts::FRAC_1_PI
+    }
+    #[inline]
+    fn frac_2_pi() -> Self {
+        std::f32::consts::FRAC_2_PI
+    }
+    #[inline]
+    fn frac_2_sqrt_pi() -> Self {
+        std::f32::consts::FRAC_2_SQRT_PI
+    }
+    #[inline]
+    fn sqrt_2() -> Self {
+        std::f32::consts::SQRT_2
+    }
+    #[inline]
+    fn frac_1_sqrt_2() -> Self {
+        std::f32::consts::FRAC_1_SQRT_2
+    }
+    #[inline]
+    fn e() -> Self {
+        std::f32::consts::E
+    }
+    #[inline]
+    fn log2_e() -> Self {
+        std::f32::consts::LOG2_E
+    }
+    #[inline]
+    fn log2_10() -> Self {
+        std::f32::consts::LOG2_10
+    }
+    #[inline]
+    fn log10_e() -> Self {
+        std::f32::consts::LOG10_E
+    }
+    #[inline]
+    fn log10_2() -> Self {
+        std::f32::consts::LOG10_2
+    }
+    #[inline]
+    fn ln_2() -> Self {
+        std::f32::consts::LN_2
+    }
+    #[inline]
+    fn ln_10() -> Self {
+        std::f32::consts::LN_10
+    }
+    #[inline]
+    fn abs_epsilon() -> Self {
+        1e-6_f32
+    }
+    #[inline]
+    fn rel_epsilon() -> Self {
+        1e-6_f32
+    }
 }
 
 impl Consts for f64 {
-    const PI: Self = std::f64::consts::PI;
-    const TAU: Self = std::f64::consts::TAU;
-    const FRAC_PI_2: Self = std::f64::consts::FRAC_PI_2;
-    const FRAC_PI_3: Self = std::f64::consts::FRAC_PI_3;
-    const FRAC_PI_4: Self = std::f64::consts::FRAC_PI_4;
-    const FRAC_PI_6: Self = std::f64::consts::FRAC_PI_6;
-    const FRAC_PI_8: Self = std::f64::consts::FRAC_PI_8;
-    const FRAC_1_PI: Self = std::f64::consts::FRAC_1_PI;
-    const FRAC_2_PI: Self = std::f64::consts::FRAC_2_PI;
-    const FRAC_2_SQRT_PI: Self = std::f64::consts::FRAC_2_SQRT_PI;
-    const SQRT_2: Self = std::f64::consts::SQRT_2;
-    const FRAC_1_SQRT_2: Self = std::f64::consts::FRAC_1_SQRT_2;
-    const E: Self = std::f64::consts::E;
-    const LOG2_E: Self = std::f64::consts::LOG2_E;
-    const LOG2_10: Self = std::f64::consts::LOG2_10;
-    const LOG10_E: Self = std::f64::consts::LOG10_E;
-    const LOG10_2: Self = std::f64::consts::LOG10_2;
-    const LN_2: Self = std::f64::consts::LN_2;
-    const LN_10: Self = std::f64::consts::LN_10;
-    const EPSILON: Self = f64::EPSILON;
-    const FEQUALS_EPSILON: Self = 1e-12_f64;
+    #[inline]
+    fn pi() -> Self {
+        std::f64::consts::PI
+    }
+    #[inline]
+    fn tau() -> Self {
+        std::f64::consts::TAU
+    }
+    #[inline]
+    fn frac_pi_2() -> Self {
+        std::f64::consts::FRAC_PI_2
+    }
+    #[inline]
+    fn frac_pi_3() -> Self {
+        std::f64::consts::FRAC_PI_3
+    }
+    #[inline]
+    fn frac_pi_4() -> Self {
+        std::f64::consts::FRAC_PI_4
+    }
+    #[inline]
+    fn frac_pi_6() -> Self {
+        std::f64::consts::FRAC_PI_6
+    }
+    #[inline]
+    fn frac_pi_8() -> Self {
+        std::f64::consts::FRAC_PI_8
+    }
+    #[inline]
+    fn frac_1_pi() -> Self {
+        std::f64::consts::FRAC_1_PI
+    }
+    #[inline]
+    fn frac_2_pi() -> Self {
+        std::f64::consts::FRAC_2_PI
+    }
+    #[inline]
+    fn frac_2_sqrt_pi() -> Self {
+        std::f64::consts::FRAC_2_SQRT_PI
+    }
+    #[inline]
+    fn sqrt_2() -> Self {
+        std::f64::consts::SQRT_2
+    }
+    #[inline]
+    fn frac_1_sqrt_2() -> Self {
+        std::f64::consts::FRAC_1_SQRT_2
+    }
+    #[inline]
+    fn e() -> Self {
+        std::f64::consts::E
+    }
+    #[inline]
+    fn log2_e() -> Self {
+        std::f64::consts::LOG2_E
+    }
+    #[inline]
+    fn log2_10() -> Self {
+        std::f64::consts::LOG2_10
+    }
+    #[inline]
+    fn log10_e() -> Self {
+        std::f64::consts::LOG10_E
+    }
+    #[inline]
+    fn log10_2() -> Self {
+        std::f64::consts::LOG10_2
+    }
+    #[inline]
+    fn ln_2() -> Self {
+        std::f64::consts::LN_2
+    }
+    #[inline]
+    fn ln_10() -> Self {
+        std::f64::consts::LN_10
+    }
+    #[inline]
+    fn abs_epsilon() -> Self {
+        1e-6_f64
+    }
+    #[inline]
+    fn rel_epsilon() -> Self {
+        1e-6_f64
+    }
 }
 
 // https://github.com/rust-lang/rust/pull/100578
@@ -372,11 +498,11 @@ pub fn fequals<T: GFloat>(a: T, b: T) -> bool {
     // https://floating-point-gui.de/errors/comparison/
 
     let diff = (a - b).abs();
-    if diff < T::FEQUALS_EPSILON {
+    if diff < T::abs_epsilon() {
         return true;
     }
 
     let largest = max(a.abs(), b.abs());
 
-    diff < largest * T::FEQUALS_EPSILON
+    diff < largest * T::rel_epsilon()
 }
