@@ -189,7 +189,7 @@ impl<T: GFloat> Bbox3<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::scalar::AlmostEqual;
+    use crate::math::{interval::Interval, scalar::AlmostEqual};
     use rand::{
         distributions::{Distribution, Uniform},
         rngs::SmallRng,
@@ -218,6 +218,8 @@ mod tests {
                     dist.sample(&mut rng),
                 ),
             );
+            let bboxi =
+                Bbox3::<Interval<f64>>::new(Point3::from(bbox.pmin), Point3::from(bbox.pmax));
 
             //     6----7      y
             //    /|   /|      ^
@@ -271,45 +273,93 @@ mod tests {
             let t_offset = dist_t.sample(&mut rng);
             let origin = p0 - dir * t_offset;
             let ray = Ray::<f64>::new(origin, dir, 1.0 + 2.0 * t_offset);
+            let rayi = Ray::<Interval<f64>>::new(
+                Point3::from(origin),
+                Vector3::from(dir),
+                Interval::from(1.0 + 2.0 * t_offset),
+            );
 
             let intersection = bbox.intersect_ray(ray);
+            let intersectioni = bboxi.intersect_ray(rayi);
 
             assert!(intersection.is_some());
             assert!(intersection.unwrap().0.almost_eq(t_offset));
             assert!(intersection.unwrap().1.almost_eq(1.0 + t_offset));
 
+            assert!(intersectioni.is_some());
+            assert!(intersectioni.unwrap().0.almost_eq(t_offset));
+            assert!(intersectioni.unwrap().1.almost_eq(1.0 + t_offset));
+
             // line goes into the cube but doesn't come out
             let ray = Ray::<f64>::new(origin, dir, 1.0);
+            let rayi = Ray::<Interval<f64>>::new(
+                Point3::from(origin),
+                Vector3::from(dir),
+                Interval::from(1.0),
+            );
 
             let intersection = bbox.intersect_ray(ray);
+            let intersectioni = bboxi.intersect_ray(rayi);
 
             assert!(intersection.is_some());
             assert!(intersection.unwrap().0.almost_eq(t_offset));
             assert!(intersection.unwrap().1.almost_eq(1.0));
 
+            assert!(intersectioni.is_some());
+            assert!(intersectioni.unwrap().0.almost_eq(t_offset));
+            assert!(intersectioni.unwrap().1.almost_eq(1.0));
+
             // line comes out of the cube but doesn't go in
             let ray = Ray::<f64>::new(p0 + dir * t_offset, dir, 1.0);
+            let rayi = Ray::<Interval<f64>>::new(
+                Point3::from(p0 + dir * t_offset),
+                Vector3::from(dir),
+                Interval::from(1.0),
+            );
 
             let intersection = bbox.intersect_ray(ray);
+            let intersectioni = bboxi.intersect_ray(rayi);
 
             assert!(intersection.is_some());
             assert!(intersection.unwrap().0.almost_eq(0.0));
             assert!(intersection.unwrap().1.almost_eq(1.0 - t_offset));
 
+            assert!(intersectioni.is_some());
+            assert!(intersectioni.unwrap().0.almost_eq(0.0));
+            assert!(intersectioni.unwrap().1.almost_eq(1.0 - t_offset));
+
             // line fully inside the cube
             let ray = Ray::<f64>::new(p0 + dir * t_offset, p1 - (p0 + dir * t_offset), 1.0);
+            let rayi = Ray::<Interval<f64>>::new(
+                Point3::from(p0 + dir * t_offset),
+                Vector3::from(p1 - (p0 + dir * t_offset)),
+                Interval::from(1.0),
+            );
 
             let intersection = bbox.intersect_ray(ray);
+            let intersectioni = bboxi.intersect_ray(rayi);
 
             assert!(intersection.is_some());
             assert!(intersection.unwrap().0.almost_eq(0.0));
             assert!(intersection.unwrap().1.almost_eq(1.0));
 
+            assert!(intersectioni.is_some());
+            assert!(intersectioni.unwrap().0.almost_eq(0.0));
+            assert!(intersectioni.unwrap().1.almost_eq(1.0));
+
             // line outside the cube (almost reaching p1)
             let ray = Ray::<f64>::new(p1 + dir * 0.01, dir, 1.0);
+            let rayi = Ray::<Interval<f64>>::new(
+                Point3::from(p1 + dir * 0.01),
+                Vector3::from(dir),
+                Interval::from(1.0),
+            );
 
             let intersection = bbox.intersect_ray(ray);
+            let intersectioni = bboxi.intersect_ray(rayi);
+
             assert!(intersection.is_none());
+            assert!(intersectioni.is_none());
 
             // line outside the cube (almost reaching p0)
             let ray = Ray::<f64>::new(p0 - dir * 1.01, dir, 1.0);

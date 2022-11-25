@@ -88,6 +88,10 @@ impl<T: GFloat> Interval<T> {
     pub fn contains(&self, t: T) -> bool {
         self.sup >= t && self.inf <= t
     }
+    #[inline]
+    pub fn is_same(&self, other: Self) -> bool {
+        self.inf == other.inf && self.sup == other.sup
+    }
 }
 
 impl<T: GFloat> AlmostEqual<Self> for Interval<T> {
@@ -99,7 +103,7 @@ impl<T: GFloat> AlmostEqual<Self> for Interval<T> {
 impl<T: GFloat> AlmostEqual<T> for Interval<T> {
     /// checks that the two intervals almost have the same bounds
     fn almost_eq(self, other: T) -> bool {
-        self.contains(other) && self.inf.fequals(other) && self.sup.fequals(other)
+        self.inf.fequals(other) && self.sup.fequals(other)
     }
 }
 impl<T: GFloat> From<T> for Interval<T> {
@@ -329,7 +333,7 @@ impl<T: GFloat> PartialEq<Self> for Interval<T> {
     #[inline]
     /// checks that the two intervals have the same bounds
     fn eq(&self, other: &Self) -> bool {
-        self.inf == other.inf && self.sup == other.sup
+        self.is_exact() && other.is_exact() && self.inf == other.inf
     }
 }
 impl<T: GFloat> PartialOrd<Self> for Interval<T> {
@@ -455,7 +459,7 @@ mod tests {
             i += 1;
             let b = a.sqrt();
 
-            if b == a {
+            if b.is_same(a) {
                 break;
             }
             a = b;
@@ -477,7 +481,7 @@ mod tests {
         let mut e = -d;
 
         let c = a / b;
-        assert_eq!(Interval::<f64>::new(f64::NEG_INFINITY, f64::INFINITY), c);
+        assert!(Interval::<f64>::new(f64::NEG_INFINITY, f64::INFINITY).is_same(c));
 
         let mut i = 0;
         while i < 100 {
@@ -486,7 +490,7 @@ mod tests {
             b = (Interval::<f64>::from(1.0) / d + d) / 4.0 + Interval::<f64>::from(0.5);
             a = (Interval::<f64>::from(-1.0) / e - e * 1.0) / -4.0 - Interval::<f64>::from(0.5); // make it complicated to test more cases.
 
-            if b == d && a == e {
+            if b.is_same(d) && a.is_same(e) {
                 break;
             }
             d = b;
