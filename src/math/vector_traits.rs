@@ -1,4 +1,4 @@
-use crate::math::scalar::{GFloat, NumTraitsGFloat};
+use crate::math::scalar::GFloat;
 
 pub trait InnerScalar {
     type ScalarType;

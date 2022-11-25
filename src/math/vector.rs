@@ -1,4 +1,4 @@
-use crate::math::scalar::{max, min, AlmostEqual, Float, GFloat, Int, Scalar, SignedScalar, UInt};
+use crate::math::scalar::{AlmostEqual, Float, GFloat, Int, Scalar, SignedScalar, UInt};
 pub use crate::math::vector_traits::{Dimension, InnerProduct, InnerScalar, Norm};
 
 pub type Vector<T, const N: usize> = GenericVector<T, N, VectorMarker>;
@@ -138,7 +138,7 @@ impl<T: Scalar, const N: usize, U> GenericVector<T, N, U> {
         // this is more readable and more easily optimizable than using iterators
         #[allow(clippy::needless_range_loop)]
         for i in 0..N {
-            vec[i] = min(vec[i], rhs.vec[i]);
+            vec[i] = vec[i].min(rhs.vec[i]);
         }
         Self::from(vec)
     }
@@ -150,7 +150,7 @@ impl<T: Scalar, const N: usize, U> GenericVector<T, N, U> {
         // this is more readable and more easily optimizable than using iterators
         #[allow(clippy::needless_range_loop)]
         for i in 0..N {
-            vec[i] = max(vec[i], rhs.vec[i]);
+            vec[i] = vec[i].max(rhs.vec[i]);
         }
         Self::from(vec)
     }
@@ -169,10 +169,10 @@ impl<T: Scalar, const N: usize, U> std::cmp::PartialEq<Self> for GenericVector<T
     }
 }
 
-impl<T: Scalar, const N: usize, U> AlmostEqual for GenericVector<T, N, U> {
-    fn almost_eq(&self, other: &Self) -> bool {
+impl<T: Scalar + AlmostEqual, const N: usize, U> AlmostEqual for GenericVector<T, N, U> {
+    fn almost_eq(self, other: Self) -> bool {
         for i in 0..N {
-            if !self.vec[i].almost_eq(&other.vec[i]) {
+            if !self.vec[i].almost_eq(other.vec[i]) {
                 return false;
             }
         }
@@ -534,14 +534,12 @@ mod tests {
 
     #[test]
     fn normalize() {
-        use crate::math::scalar::fequals;
-
         let p1 = Vector3::<f64>::new(1.3, 2.4, 3.6);
         let p2 = Vector3::<f64>::new(4.6, 3.2, 9.98);
         let p3 = Vector3::<f64>::new(0.1, 0.8, 0.03);
 
-        assert!(fequals(p1.normalize().norm(), 1.0));
-        assert!(fequals(p2.normalize().norm(), 1.0));
-        assert!(fequals(p3.normalize().norm(), 1.0));
+        assert!(p1.normalize().norm().fequals(1.0));
+        assert!(p2.normalize().norm().fequals(1.0));
+        assert!(p3.normalize().norm().fequals(1.0));
     }
 }

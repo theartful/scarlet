@@ -1,7 +1,7 @@
 use crate::{
     geometry::ray::Ray,
     math::{
-        scalar::{max, min, Float, GFloat, Int, Scalar},
+        scalar::{Float, GFloat, Int, Scalar},
         vector::{Point3, Vector3},
     },
 };
@@ -67,30 +67,22 @@ impl<T: Scalar> Default for Bbox3<T> {
 impl<T: Scalar> Bbox3<T> {
     pub fn new(p1: Point3<T>, p2: Point3<T>) -> Self {
         Bbox3 {
-            pmin: Point3::<T>::new(
-                min(p1.x(), p2.x()),
-                min(p1.y(), p2.y()),
-                min(p1.z(), p2.z()),
-            ),
-            pmax: Point3::<T>::new(
-                max(p1.x(), p2.x()),
-                max(p1.y(), p2.y()),
-                max(p1.z(), p2.z()),
-            ),
+            pmin: Point3::<T>::new(p1.x().min(p2.x()), p1.y().min(p2.y()), p1.z().min(p2.z())),
+            pmax: Point3::<T>::new(p1.x().max(p2.x()), p1.y().max(p2.y()), p1.z().max(p2.z())),
         }
     }
 
     pub fn union(&self, rhs: Bbox3<T>) -> Self {
         Bbox3 {
             pmin: Point3::<T>::new(
-                min(self.xmin(), rhs.xmin()),
-                min(self.ymin(), rhs.ymin()),
-                min(self.zmin(), rhs.zmin()),
+                self.xmin().min(rhs.xmin()),
+                self.ymin().min(rhs.ymin()),
+                self.zmin().min(rhs.zmin()),
             ),
             pmax: Point3::<T>::new(
-                max(self.xmax(), rhs.xmax()),
-                max(self.ymax(), rhs.ymax()),
-                max(self.zmax(), rhs.zmax()),
+                self.xmax().max(rhs.xmax()),
+                self.ymax().max(rhs.ymax()),
+                self.zmax().max(rhs.zmax()),
             ),
         }
     }
@@ -98,14 +90,14 @@ impl<T: Scalar> Bbox3<T> {
     pub fn intersect(&self, rhs: Bbox3<T>) -> Self {
         Bbox3 {
             pmin: Point3::<T>::new(
-                max(self.xmin(), rhs.xmin()),
-                max(self.ymin(), rhs.ymin()),
-                max(self.zmin(), rhs.zmin()),
+                self.xmin().max(rhs.xmin()),
+                self.ymin().max(rhs.ymin()),
+                self.zmin().max(rhs.zmin()),
             ),
             pmax: Point3::<T>::new(
-                min(self.xmax(), rhs.xmax()),
-                min(self.ymax(), rhs.ymax()),
-                min(self.zmax(), rhs.zmax()),
+                self.xmax().min(rhs.xmax()),
+                self.ymax().min(rhs.ymax()),
+                self.zmax().min(rhs.zmax()),
             ),
         }
     }
@@ -136,7 +128,7 @@ impl<T: Scalar> Bbox3<T> {
     where
         T: GFloat,
     {
-        (self.pmax + self.pmin) * T::from(0.5).unwrap()
+        (self.pmax + self.pmin) * T::half()
     }
 
     pub fn max_extent(&self) -> ((T, T), u8) {
@@ -183,13 +175,13 @@ impl<T: GFloat> Bbox3<T> {
         let t1 = tmin.min(tmax);
         let t2 = tmin.max(tmax);
 
-        let tnear = max(max(t1.x(), t1.y()), t1.z());
-        let tfar = min(min(t2.x(), t2.y()), t2.z());
+        let tnear = t1.x().max(t1.y()).max(t1.z());
+        let tfar = t2.x().min(t2.y()).min(t2.z());
 
         if tnear > ray.tmax || tfar < T::zero() {
             None
         } else {
-            Some((max(tnear, T::zero()), min(tfar, ray.tmax)))
+            Some((tnear.max(T::zero()), tfar.min(ray.tmax)))
         }
     }
 }
@@ -283,8 +275,8 @@ mod tests {
             let intersection = bbox.intersect_ray(ray);
 
             assert!(intersection.is_some());
-            assert!(intersection.unwrap().0.almost_eq(&t_offset));
-            assert!(intersection.unwrap().1.almost_eq(&(1.0 + t_offset)));
+            assert!(intersection.unwrap().0.almost_eq(t_offset));
+            assert!(intersection.unwrap().1.almost_eq(1.0 + t_offset));
 
             // line goes into the cube but doesn't come out
             let ray = Ray::<f64>::new(origin, dir, 1.0);
@@ -292,8 +284,8 @@ mod tests {
             let intersection = bbox.intersect_ray(ray);
 
             assert!(intersection.is_some());
-            assert!(intersection.unwrap().0.almost_eq(&t_offset));
-            assert!(intersection.unwrap().1.almost_eq(&1.0));
+            assert!(intersection.unwrap().0.almost_eq(t_offset));
+            assert!(intersection.unwrap().1.almost_eq(1.0));
 
             // line comes out of the cube but doesn't go in
             let ray = Ray::<f64>::new(p0 + dir * t_offset, dir, 1.0);
@@ -301,8 +293,8 @@ mod tests {
             let intersection = bbox.intersect_ray(ray);
 
             assert!(intersection.is_some());
-            assert!(intersection.unwrap().0.almost_eq(&0.0));
-            assert!(intersection.unwrap().1.almost_eq(&(1.0 - t_offset)));
+            assert!(intersection.unwrap().0.almost_eq(0.0));
+            assert!(intersection.unwrap().1.almost_eq(1.0 - t_offset));
 
             // line fully inside the cube
             let ray = Ray::<f64>::new(p0 + dir * t_offset, p1 - (p0 + dir * t_offset), 1.0);
@@ -310,8 +302,8 @@ mod tests {
             let intersection = bbox.intersect_ray(ray);
 
             assert!(intersection.is_some());
-            assert!(intersection.unwrap().0.almost_eq(&0.0));
-            assert!(intersection.unwrap().1.almost_eq(&1.0));
+            assert!(intersection.unwrap().0.almost_eq(0.0));
+            assert!(intersection.unwrap().1.almost_eq(1.0));
 
             // line outside the cube (almost reaching p1)
             let ray = Ray::<f64>::new(p1 + dir * 0.01, dir, 1.0);

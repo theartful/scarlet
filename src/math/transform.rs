@@ -88,11 +88,11 @@ impl<T: Scalar> Matrix4x4<T> {
     }
 }
 
-impl<T: Scalar> AlmostEqual for Matrix4x4<T> {
-    fn almost_eq(&self, other: &Self) -> bool {
+impl<T: Scalar + AlmostEqual> AlmostEqual for Matrix4x4<T> {
+    fn almost_eq(self, other: Self) -> bool {
         for i in 0..4 {
             for j in 0..4 {
-                if !self.data[i][j].almost_eq(&other.data[i][j]) {
+                if !self.data[i][j].almost_eq(other.data[i][j]) {
                     return false;
                 }
             }
@@ -395,7 +395,7 @@ impl<T: GFloat> Transform<T> {
     /// `z = far` and whose field of view is `fov` into the cube
     /// `(x, y, z) \in [-1, 1] * [-1, 1] * [0, 1]`
     pub fn perspective(fov: T, near: T, far: T) -> Self {
-        let e = (fov * T::from(0.5).unwrap()).tan().recip();
+        let e = (fov * T::half()).tan().recip();
         let mat = Matrix4x4 {
             data: [
                 [e, T::zero(), T::zero(), T::zero()],
@@ -421,9 +421,9 @@ impl<T: GFloat> Transform<T> {
     }
 }
 
-impl<T: GFloat> AlmostEqual for Transform<T> {
-    fn almost_eq(&self, other: &Self) -> bool {
-        self.m.almost_eq(&other.m) && self.minv.almost_eq(&other.minv)
+impl<T: GFloat + AlmostEqual> AlmostEqual for Transform<T> {
+    fn almost_eq(self, other: Self) -> bool {
+        self.m.almost_eq(other.m) && self.minv.almost_eq(other.minv)
     }
 }
 
@@ -558,7 +558,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::scalar::{min_max, AlmostEqual};
+    use crate::math::scalar::AlmostEqual;
     use rand::distributions::{Distribution, Uniform};
     use rand::rngs::SmallRng;
     use rand::{Rng, SeedableRng};
@@ -644,12 +644,12 @@ mod tests {
             transform_z,
             Transform::<f64>::rotate(Vector3::<f64>::new(0.0, 0.0, 1.0), angle)
         );
-        assert!(transform_x.map(y).almost_eq(&z));
-        assert!(transform_x.map(z).almost_eq(&-y));
-        assert!(transform_y.map(x).almost_eq(&-z));
-        assert!(transform_y.map(z).almost_eq(&x));
-        assert!(transform_z.map(x).almost_eq(&y));
-        assert!(transform_z.map(y).almost_eq(&-x));
+        assert!(transform_x.map(y).almost_eq(z));
+        assert!(transform_x.map(z).almost_eq(-y));
+        assert!(transform_y.map(x).almost_eq(-z));
+        assert!(transform_y.map(z).almost_eq(x));
+        assert!(transform_z.map(x).almost_eq(y));
+        assert!(transform_z.map(y).almost_eq(-x));
     }
 
     #[test]
@@ -673,15 +673,15 @@ mod tests {
             let transform_y = Transform::<f64>::rotate_y(angle);
             let transform_z = Transform::<f64>::rotate_z(angle);
 
-            assert!(transform_x.almost_eq(&Transform::<f64>::rotate(
+            assert!(transform_x.almost_eq(Transform::<f64>::rotate(
                 Vector3::<f64>::new(1.0, 0.0, 0.0),
                 angle
             )));
-            assert!(transform_y.almost_eq(&Transform::<f64>::rotate(
+            assert!(transform_y.almost_eq(Transform::<f64>::rotate(
                 Vector3::<f64>::new(0.0, 1.0, 0.0),
                 angle
             )));
-            assert!(transform_z.almost_eq(&Transform::<f64>::rotate(
+            assert!(transform_z.almost_eq(Transform::<f64>::rotate(
                 Vector3::<f64>::new(0.0, 0.0, 1.0),
                 angle
             )));
@@ -717,7 +717,7 @@ mod tests {
 
             let angle_x = sin_angle_x.atan2(cos_angle_x);
             assert!(
-                angle_x.almost_eq(&angle),
+                angle_x.almost_eq(angle),
                 "Expected that the angle between the original vector and rotated \
             vector after being projected on the plane perpendicular to the axis \
             of rotation to be equal to the rotation angle! Rotation angle = {} \
@@ -736,7 +736,7 @@ mod tests {
                 .dot(Vector3::new(0.0, 1.0, 0.0));
             let angle_y = sin_angle_y.atan2(cos_angle_y);
             assert!(
-                angle_y.almost_eq(&angle),
+                angle_y.almost_eq(angle),
                 "Expected that the angle between the original vector and rotated \
             vector after being projected on the plane perpendicular to the axis \
             of rotation to be equal to the rotation angle! Rotation angle = {} \
@@ -745,7 +745,7 @@ mod tests {
                 angle_y
             );
 
-            assert!(sin_angle_y.atan2(cos_angle_y).almost_eq(&angle));
+            assert!(sin_angle_y.atan2(cos_angle_y).almost_eq(angle));
 
             let cos_angle_z = Vector3::new(vec[0], vec[1], 0.0)
                 .normalize()
@@ -758,7 +758,7 @@ mod tests {
 
             let angle_z = sin_angle_z.atan2(cos_angle_z);
             assert!(
-                angle_z.almost_eq(&angle),
+                angle_z.almost_eq(angle),
                 "Expected that the angle between the original vector and rotated \
             vector after being projected on the plane perpendicular to the axis \
             of rotation to be equal to the rotation angle! Rotation angle = {} \
@@ -798,7 +798,7 @@ mod tests {
 
             assert!(vec
                 .dot(axis_of_rotation)
-                .almost_eq(&rotated_vec.dot(axis_of_rotation)));
+                .almost_eq(rotated_vec.dot(axis_of_rotation)));
 
             let remove_rotation_axis_component =
                 |v: Vector3<f64>| v - axis_of_rotation * v.dot(axis_of_rotation);
@@ -814,7 +814,7 @@ mod tests {
 
             let estimated_angle = sin_angle.atan2(cos_angle);
             assert!(
-                estimated_angle.almost_eq(&angle),
+                estimated_angle.almost_eq(angle),
                 "Expected that the angle between the original vector and rotated \
                         vector after being projected on the plane perpendicular to the axis \
                         of rotation to be equal to the rotation angle! Rotation angle = {} \
@@ -865,14 +865,14 @@ mod tests {
 
             let mapped_origin = transform.map(eye);
             assert!(
-                mapped_origin.almost_eq(&Point3::new(0.0, 0.0, 0.0)),
+                mapped_origin.almost_eq(Point3::new(0.0, 0.0, 0.0)),
                 "Expected the eye position to be mapped to zero, but instead it is mapped to {:?}",
                 eye
             );
 
             let mapped_target_eye = transform.map((target - eye).normalize());
             assert!(
-                mapped_target_eye.almost_eq(&Vector3::new(0.0, 0.0, -1.0)),
+                mapped_target_eye.almost_eq(Vector3::new(0.0, 0.0, -1.0)),
                 "Expected the mapped vector (target-eye) = {:?} to lie on the z-axis",
                 mapped_target_eye
             );
@@ -882,7 +882,7 @@ mod tests {
                 (up - (eye - target).normalize() * up.dot((eye - target).normalize())).normalize();
 
             assert!(
-                actual_up.almost_eq(&up_without_z),
+                actual_up.almost_eq(up_without_z),
                 "Expected the actual up vector to be the same as the suggested \
                 up vector minus the component lying on the viewing direction \
                 (to maintain orthogonality), but instead actual_up = {:?}, \
@@ -903,7 +903,8 @@ mod tests {
             let dist_angle = Uniform::new_inclusive(0.0, std::f64::consts::FRAC_PI_2);
             let dist_plane = Uniform::new_inclusive(0.0, 100.0);
             let fov: f64 = dist_angle.sample(&mut rng);
-            let (near, far) = min_max(dist_plane.sample(&mut rng), dist_plane.sample(&mut rng));
+            let (near, far) =
+                f64::min_max(dist_plane.sample(&mut rng), dist_plane.sample(&mut rng));
 
             let transform = Transform::<f64>::perspective(fov, near, far);
 
@@ -916,10 +917,10 @@ mod tests {
             let p2 = Point3::<f64>::new(near * tan_fov_2, -near * tan_fov_2, near);
             let p3 = Point3::<f64>::new(-near * tan_fov_2, -near * tan_fov_2, near);
 
-            assert!(transform.map(p0).almost_eq(&Point3::new(1.0, 1.0, 0.0)));
-            assert!(transform.map(p1).almost_eq(&Point3::new(-1.0, 1.0, 0.0)));
-            assert!(transform.map(p2).almost_eq(&Point3::new(1.0, -1.0, 0.0)));
-            assert!(transform.map(p3).almost_eq(&Point3::new(-1.0, -1.0, 0.0)));
+            assert!(transform.map(p0).almost_eq(Point3::new(1.0, 1.0, 0.0)));
+            assert!(transform.map(p1).almost_eq(Point3::new(-1.0, 1.0, 0.0)));
+            assert!(transform.map(p2).almost_eq(Point3::new(1.0, -1.0, 0.0)));
+            assert!(transform.map(p3).almost_eq(Point3::new(-1.0, -1.0, 0.0)));
 
             // tan(fov/2) = x_far / z_far
             // tan(fov/2) = y_far / z_far
@@ -928,10 +929,10 @@ mod tests {
             let p6 = Point3::<f64>::new(far * tan_fov_2, -far * tan_fov_2, far);
             let p7 = Point3::<f64>::new(-far * tan_fov_2, -far * tan_fov_2, far);
 
-            assert!(transform.map(p4).almost_eq(&Point3::new(1.0, 1.0, 1.0)));
-            assert!(transform.map(p5).almost_eq(&Point3::new(-1.0, 1.0, 1.0)));
-            assert!(transform.map(p6).almost_eq(&Point3::new(1.0, -1.0, 1.0)));
-            assert!(transform.map(p7).almost_eq(&Point3::new(-1.0, -1.0, 1.0)));
+            assert!(transform.map(p4).almost_eq(Point3::new(1.0, 1.0, 1.0)));
+            assert!(transform.map(p5).almost_eq(Point3::new(-1.0, 1.0, 1.0)));
+            assert!(transform.map(p6).almost_eq(Point3::new(1.0, -1.0, 1.0)));
+            assert!(transform.map(p7).almost_eq(Point3::new(-1.0, -1.0, 1.0)));
         }
     }
 }

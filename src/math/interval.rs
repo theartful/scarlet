@@ -1,6 +1,4 @@
-use crate::math::scalar::{
-    fequals, max, min, AlmostEqual, Float, GFloat, LowestHighest, Num, One, Zero,
-};
+use crate::math::scalar::{AlmostEqual, Float, GFloat, Scalar, SignedScalar};
 use std::cmp::{Ordering, PartialEq, PartialOrd};
 
 pub type Intervalf = Interval<Float>;
@@ -59,7 +57,7 @@ impl<T: GFloat> Interval<T> {
                 (self.inf * self.inf).next_up(),
             )
         } else {
-            let abs_max = max(-self.inf, self.sup);
+            let abs_max = (-self.inf).max(self.sup);
             Self::new(T::zero(), (abs_max * abs_max).next_up())
         }
     }
@@ -76,7 +74,7 @@ impl<T: GFloat> Interval<T> {
     }
     #[inline]
     pub fn approx(&self) -> T {
-        (self.inf + self.sup) * T::from(0.5).unwrap()
+        (self.inf + self.sup) * T::half()
     }
     #[inline]
     pub fn in_range(&self, t0: T, t1: T) -> bool {
@@ -84,7 +82,6 @@ impl<T: GFloat> Interval<T> {
     }
     #[inline]
     pub fn is_exact(&self) -> bool {
-        // should we use fequals instead?
         self.inf == self.sup
     }
     #[inline]
@@ -93,10 +90,16 @@ impl<T: GFloat> Interval<T> {
     }
 }
 
-impl<T: GFloat> AlmostEqual for Interval<T> {
+impl<T: GFloat> AlmostEqual<Self> for Interval<T> {
     /// checks that the two intervals almost have the same bounds
-    fn almost_eq(&self, other: &Self) -> bool {
-        fequals(self.inf, other.inf) && fequals(self.sup, other.sup)
+    fn almost_eq(self, other: Self) -> bool {
+        self.inf.fequals(other.inf) && self.sup.fequals(other.sup)
+    }
+}
+impl<T: GFloat> AlmostEqual<T> for Interval<T> {
+    /// checks that the two intervals almost have the same bounds
+    fn almost_eq(self, other: T) -> bool {
+        self.contains(other) && self.inf.fequals(other) && self.sup.fequals(other)
     }
 }
 impl<T: GFloat> From<T> for Interval<T> {
@@ -213,8 +216,8 @@ impl<T: GFloat> std::ops::Mul<Self> for Interval<T> {
                 Self::new((a.sup * b.inf).next_down(), (a.inf * b.inf).next_up())
             } else {
                 Self::new(
-                    min(a.inf * b.sup, a.sup * b.inf).next_down(),
-                    max(a.inf * a.inf, b.sup * b.sup).next_up(),
+                    (a.inf * b.sup).min(a.sup * b.inf).next_down(),
+                    (a.inf * a.inf).max(b.sup * b.sup).next_up(),
                 )
             }
         }
@@ -363,41 +366,6 @@ impl<T: GFloat> PartialOrd<T> for Interval<T> {
         }
     }
 }
-impl<T: GFloat> Zero for Interval<T> {
-    #[inline]
-    fn zero() -> Self {
-        Self::new(T::zero(), T::zero())
-    }
-    #[inline]
-    fn is_zero(&self) -> bool {
-        self.inf == T::zero() && self.sup == T::zero()
-    }
-}
-impl<T: GFloat> One for Interval<T> {
-    #[inline]
-    fn one() -> Self {
-        Self::new(T::one(), T::one())
-    }
-}
-impl<T: GFloat> LowestHighest for Interval<T> {
-    #[inline]
-    fn lowest() -> Self {
-        Self::from(T::lowest())
-    }
-    #[inline]
-    fn highest() -> Self {
-        Self::from(T::highest())
-    }
-}
-impl<T: GFloat> Num for Interval<T> {
-    type FromStrRadixErr = T::FromStrRadixErr;
-    fn from_str_radix(s: &str, r: u32) -> std::result::Result<Self, Self::FromStrRadixErr> {
-        match T::from_str_radix(s, r) {
-            Err(e) => Err(e),
-            Ok(s) => Ok(Self::from(s)),
-        }
-    }
-}
 impl<T: GFloat> std::ops::Rem<Self> for Interval<T> {
     type Output = Self;
     fn rem(self, _rhs: Self) -> Self::Output {
@@ -407,6 +375,43 @@ impl<T: GFloat> std::ops::Rem<Self> for Interval<T> {
 impl<T: GFloat> std::ops::RemAssign<Self> for Interval<T> {
     fn rem_assign(&mut self, _rhs: Self) {
         std::unimplemented!();
+    }
+}
+
+impl<T: GFloat> Scalar for Interval<T> {
+    #[inline]
+    fn zero() -> Self {
+        Self::new(T::zero(), T::zero())
+    }
+    #[inline]
+    fn one() -> Self {
+        Self::new(T::one(), T::one())
+    }
+    #[inline]
+    fn lowest() -> Self {
+        Self::new(T::lowest(), T::lowest())
+    }
+    #[inline]
+    fn highest() -> Self {
+        Self::new(T::highest(), T::highest())
+    }
+    #[inline]
+    fn max(self, other: Self) -> Self {
+        Self::new(self.inf.max(other.inf), self.sup.max(other.sup))
+    }
+    #[inline]
+    fn min(self, other: Self) -> Self {
+        Self::new(self.inf.min(other.inf), self.sup.min(other.sup))
+    }
+}
+impl<T: GFloat> SignedScalar for Interval<T> {
+    #[inline]
+    fn abs(self) -> Self {
+        if self.inf.is_negative() {
+            Self::new(T::zero(), self.inf.abs().max(self.sup.abs()))
+        } else {
+            Self::from(T::min_max(self.inf, self.sup))
+        }
     }
 }
 
@@ -424,8 +429,8 @@ mod tests {
         while i < 500 {
             i += 1;
 
-            let x_ip1 = x_i - y_i / Interval::<f64>::from(i as f64).sqrt().unwrap();
-            let y_ip1 = y_i + x_i / Interval::<f64>::from(i as f64).sqrt().unwrap();
+            let x_ip1 = x_i - y_i / Interval::<f64>::from(i as f64).sqrt();
+            let y_ip1 = y_i + x_i / Interval::<f64>::from(i as f64).sqrt();
             x_i = x_ip1;
             y_i = y_ip1;
 
@@ -448,7 +453,7 @@ mod tests {
 
         while i < 500 {
             i += 1;
-            let b = a.sqrt().unwrap();
+            let b = a.sqrt();
 
             if b == a {
                 break;
