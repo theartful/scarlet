@@ -41,6 +41,7 @@ impl<T: GFloat, const N: usize, U> From<GenericVector<Interval<T>, N, U>>
 
 // this is more accurate than self.dot(self) because of interval arithmetic
 impl Norm for Vector3fi {
+    #[inline]
     fn square_norm(self) -> Self::ScalarType {
         self.x().square() + self.y().square() + self.z().square()
     }

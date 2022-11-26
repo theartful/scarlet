@@ -34,15 +34,17 @@ impl<T> VectorTraits for T where
 {
 }
 
-pub trait InnerProduct<Rhs>: VectorTraits {
-    fn dot(&self, rhs: Rhs) -> Self::ScalarType;
+pub trait InnerProduct<Rhs>: InnerScalar + Sized + Copy {
+    fn dot(self, rhs: Rhs) -> Self::ScalarType;
 }
 
 pub trait Norm: InnerProduct<Self> {
+    #[inline]
     fn square_norm(self) -> Self::ScalarType {
         self.dot(self)
     }
 
+    #[inline]
     fn norm(self) -> Self::ScalarType
     where
         Self::ScalarType: GFloat,
@@ -50,10 +52,15 @@ pub trait Norm: InnerProduct<Self> {
         self.square_norm().sqrt()
     }
 
-    fn square_distance(self, vec: Self) -> Self::ScalarType {
+    #[inline]
+    fn square_distance(self, vec: Self) -> Self::ScalarType
+    where
+        Self: std::ops::Sub<Self, Output = Self>,
+    {
         (self - vec).square_norm()
     }
 
+    #[inline]
     fn distance(self, vec: Self) -> Self::ScalarType
     where
         Self::ScalarType: GFloat,
@@ -62,9 +69,11 @@ pub trait Norm: InnerProduct<Self> {
         self.square_distance(vec).sqrt()
     }
 
+    #[inline]
     fn normalize(self) -> Self
     where
         Self::ScalarType: GFloat,
+        Self: std::ops::Div<Self::ScalarType, Output = Self>,
     {
         self / self.norm()
     }

@@ -349,11 +349,11 @@ impl<T: Scalar, const N: usize, U> std::ops::Div<T> for GenericVector<T, N, U> {
     }
 }
 
-impl<T: SignedScalar, const N: usize, U: HasSub, I> InnerProduct<GenericVector<T, N, I>>
+impl<T: SignedScalar, const N: usize, U, I> InnerProduct<GenericVector<T, N, I>>
     for GenericVector<T, N, U>
 {
     #[inline]
-    fn dot(&self, rhs: GenericVector<T, N, I>) -> Self::ScalarType {
+    fn dot(self, rhs: GenericVector<T, N, I>) -> Self::ScalarType {
         let mut res = T::zero();
         for i in 0..N {
             res += self.vec[i] * rhs.vec[i]
@@ -431,11 +431,12 @@ impl Norm for Vector3<f32> {}
 impl Norm for Vector3<f64> {}
 impl Norm for Vector4<f32> {}
 impl Norm for Vector4<f64> {}
+impl Norm for Normal3<f64> {}
 
 // for convenience so that we don't have to import InnerProduct
 impl<T: SignedScalar, const N: usize, U> GenericVector<T, N, U> {
     #[inline]
-    pub fn dot<I>(&self, rhs: I) -> <Self as InnerScalar>::ScalarType
+    pub fn dot<I>(self, rhs: I) -> <Self as InnerScalar>::ScalarType
     where
         U: HasSub,
         Self: InnerProduct<I>,
@@ -448,26 +449,30 @@ impl<T: SignedScalar, const N: usize, U> GenericVector<T, N, U> {
 impl<T: SignedScalar, const N: usize, U> GenericVector<T, N, U>
 where
     Self: Norm,
+    Self: InnerScalar<ScalarType = T>,
 {
     #[inline]
-    pub fn square_norm(self) -> <Self as InnerScalar>::ScalarType {
+    pub fn square_norm(self) -> T {
         <Self as Norm>::square_norm(self)
     }
     #[inline]
-    pub fn norm(self) -> <Self as InnerScalar>::ScalarType
+    pub fn norm(self) -> T
     where
-        <Self as InnerScalar>::ScalarType: GFloat,
+        T: GFloat,
     {
         <Self as Norm>::norm(self)
     }
     #[inline]
-    pub fn square_distance(self, vec: Self) -> <Self as InnerScalar>::ScalarType {
+    pub fn square_distance(self, vec: Self) -> T
+    where
+        U: HasSub,
+    {
         <Self as Norm>::square_distance(self, vec)
     }
     #[inline]
-    pub fn distance(self, vec: Self) -> <Self as InnerScalar>::ScalarType
+    pub fn distance(self, vec: Self) -> T
     where
-        <Self as InnerScalar>::ScalarType: GFloat,
+        T: GFloat,
         Self: std::ops::Sub<Self, Output = Self>,
     {
         <Self as Norm>::distance(self, vec)
