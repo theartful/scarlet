@@ -28,23 +28,23 @@ impl<T: GFloat> Interval<T> {
         Self { inf, sup }
     }
     #[inline]
-    pub fn is_positive(&self) -> bool {
+    pub fn is_positive(self) -> bool {
         self.inf > T::zero()
     }
     #[inline]
-    pub fn is_negative(&self) -> bool {
+    pub fn is_negative(self) -> bool {
         self.sup < T::zero()
     }
     #[inline]
-    pub fn is_nonpositive(&self) -> bool {
+    pub fn is_nonpositive(self) -> bool {
         self.sup <= T::zero()
     }
     #[inline]
-    pub fn is_nonnegative(&self) -> bool {
+    pub fn is_nonnegative(self) -> bool {
         self.inf >= T::zero()
     }
     #[inline]
-    pub fn square(&self) -> Self {
+    pub fn square(self) -> Self {
         // adapted from CGAL
         if self.is_nonnegative() {
             Self::new(
@@ -62,7 +62,7 @@ impl<T: GFloat> Interval<T> {
         }
     }
     #[inline]
-    pub fn sqrt(&self) -> Option<Self> {
+    pub fn sqrt(self) -> Option<Self> {
         if self.is_nonnegative() {
             Some(Self::new(
                 self.inf.sqrt().next_down(),
@@ -73,49 +73,49 @@ impl<T: GFloat> Interval<T> {
         }
     }
     #[inline]
-    pub fn approx(&self) -> T {
+    pub fn approx(self) -> T {
         (self.inf + self.sup) * T::half()
     }
     #[inline]
-    pub fn in_range(&self, t0: T, t1: T) -> bool {
+    pub fn in_range(self, t0: T, t1: T) -> bool {
         self.inf >= t0 && self.sup <= t1
     }
     #[inline]
-    pub fn is_exact(&self) -> bool {
+    pub fn is_exact(self) -> bool {
         self.inf == self.sup
     }
     #[inline]
-    pub fn contains(&self, t: T) -> bool {
+    pub fn contains(self, t: T) -> bool {
         self.sup >= t && self.inf <= t
     }
     #[inline]
-    pub fn is_same(&self, other: Self) -> bool {
+    pub fn is_same(self, other: Self) -> bool {
         self.inf == other.inf && self.sup == other.sup
     }
     #[inline]
-    pub fn extend_by_ulp(&self) -> Self {
+    pub fn extend_by_ulp(self) -> Self {
         Self::new(self.inf.next_down(), self.sup.next_up())
     }
     #[inline]
-    pub fn map_monotonic_inc<F>(&self, mut f: F) -> Self
+    pub fn map_monotonic_inc<F>(self, mut f: F) -> Self
     where
         F: FnMut(T) -> T,
     {
         Self::new(f(self.inf), f(self.sup)).extend_by_ulp()
     }
     #[inline]
-    pub fn map_monotonic_dec<F>(&self, mut f: F) -> Self
+    pub fn map_monotonic_dec<F>(self, mut f: F) -> Self
     where
         F: FnMut(T) -> T,
     {
         Self::new(f(self.sup), f(self.inf)).extend_by_ulp()
     }
     #[inline]
-    pub fn intersect(&self, rhs: Self) -> Self {
+    pub fn intersect(self, rhs: Self) -> Self {
         Self::new(self.inf.max(rhs.inf), self.sup.min(rhs.sup))
     }
     #[inline]
-    pub fn union(&self, rhs: Self) -> Self {
+    pub fn union(self, rhs: Self) -> Self {
         Self::new(self.inf.min(rhs.inf), self.sup.max(rhs.sup))
     }
 }
