@@ -69,6 +69,14 @@ pub trait Scalar: PartialEq + PartialOrd + NumOps + NumAssignOps + Copy + Debug 
             self
         }
     }
+    #[inline]
+    fn in_range(self, lo: Self, hi: Self) -> bool {
+        self >= lo && self <= hi
+    }
+    #[inline]
+    fn square(self) -> Self {
+        self * self
+    }
 }
 
 pub trait SignedScalar: Scalar + Neg<Output = Self> {

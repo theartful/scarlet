@@ -432,6 +432,10 @@ impl<T: GFloat> Scalar for Interval<T> {
     fn min(self, other: Self) -> Self {
         Self::new(self.inf.min(other.inf), self.sup.min(other.sup))
     }
+    #[inline]
+    fn square(self) -> Self {
+        self.square()
+    }
 }
 impl<T: GFloat> SignedScalar for Interval<T> {
     #[inline]
