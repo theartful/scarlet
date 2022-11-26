@@ -238,45 +238,78 @@ mod tests {
                 Point3::new(bbox.xmin(), bbox.ymax(), bbox.zmax()),
                 Point3::new(bbox.xmax(), bbox.ymax(), bbox.zmax()),
             ];
+            let psi: [Point3<Interval<f64>>; 8] = [
+                Point3::from(ps[0]),
+                Point3::from(ps[1]),
+                Point3::from(ps[2]),
+                Point3::from(ps[3]),
+                Point3::from(ps[4]),
+                Point3::from(ps[5]),
+                Point3::from(ps[6]),
+                Point3::from(ps[7]),
+            ];
 
             // choose two faces by random
             let mut faces = [
-                (ps[0], ps[1], ps[2], ps[3]),
-                (ps[4], ps[5], ps[6], ps[7]),
-                (ps[0], ps[1], ps[4], ps[5]),
-                (ps[2], ps[3], ps[6], ps[7]),
-                (ps[0], ps[2], ps[4], ps[6]),
-                (ps[1], ps[3], ps[5], ps[7]),
+                (0, 1, 2, 3),
+                (4, 5, 6, 7),
+                (0, 1, 4, 5),
+                (2, 3, 6, 7),
+                (0, 2, 4, 6),
+                (1, 3, 5, 7),
             ];
-
             faces.shuffle(&mut rng);
 
-            let face0 = faces[0];
-            let face1 = faces[1];
+            let face0 = (
+                ps[faces[0].0],
+                ps[faces[0].1],
+                ps[faces[0].2],
+                ps[faces[0].3],
+            );
+            let face1 = (
+                ps[faces[1].0],
+                ps[faces[1].1],
+                ps[faces[1].2],
+                ps[faces[1].3],
+            );
+            let face0i = (
+                psi[faces[0].0],
+                psi[faces[0].1],
+                psi[faces[0].2],
+                psi[faces[0].3],
+            );
+            let face1i = (
+                psi[faces[1].0],
+                psi[faces[1].1],
+                psi[faces[1].2],
+                psi[faces[1].3],
+            );
 
             let dist_t = Uniform::new_inclusive(0.0, 1.0);
 
             // sample a random point from the first face
-            let p0 = face0.0
-                + (face0.1 - face0.0) * dist_t.sample(&mut rng)
-                + (face0.2 - face0.0) * dist_t.sample(&mut rng);
+            let (t0, t1) = (dist_t.sample(&mut rng), dist_t.sample(&mut rng));
+            let p0 = face0.0 + (face0.1 - face0.0) * t0 + (face0.2 - face0.0) * t1;
+            let p0i = face0i.0 + (face0i.1 - face0i.0) * t0 + (face0i.2 - face0i.0) * t1;
 
             // sample a random point from the second face
-            let p1 = face1.0
-                + (face1.1 - face1.0) * dist_t.sample(&mut rng)
-                + (face1.2 - face1.0) * dist_t.sample(&mut rng);
+            let (t0, t1) = (dist_t.sample(&mut rng), dist_t.sample(&mut rng));
+            let p1 = face1.0 + (face1.1 - face1.0) * t0 + (face1.2 - face1.0) * t1;
+            let p1i = face1i.0 + (face1i.1 - face1i.0) * t0 + (face1i.2 - face1i.0) * t1;
 
             // create ray connecting p0 and p1
             let dir = p1 - p0;
+            let diri = p1i - p0i;
 
             // line  fully passes through the cube
             let t_offset = dist_t.sample(&mut rng);
             let origin = p0 - dir * t_offset;
+            let origini = p0i - diri * t_offset;
             let ray = Ray::<f64>::new(origin, dir, 1.0 + 2.0 * t_offset);
             let rayi = Ray::<Interval<f64>>::new(
-                Point3::from(origin),
-                Vector3::from(dir),
-                Interval::from(1.0 + 2.0 * t_offset),
+                origini,
+                diri,
+                Interval::from(1.0) + Interval::from(2.0) * t_offset,
             );
 
             let intersection = bbox.intersect_ray(ray);
@@ -288,15 +321,14 @@ mod tests {
 
             assert!(intersectioni.is_some());
             assert!(intersectioni.unwrap().0.almost_eq(t_offset));
-            assert!(intersectioni.unwrap().1.almost_eq(1.0 + t_offset));
+            assert!(intersectioni
+                .unwrap()
+                .1
+                .almost_eq(Interval::one() + t_offset));
 
             // line goes into the cube but doesn't come out
             let ray = Ray::<f64>::new(origin, dir, 1.0);
-            let rayi = Ray::<Interval<f64>>::new(
-                Point3::from(origin),
-                Vector3::from(dir),
-                Interval::from(1.0),
-            );
+            let rayi = Ray::<Interval<f64>>::new(origini, diri, Interval::one());
 
             let intersection = bbox.intersect_ray(ray);
             let intersectioni = bboxi.intersect_ray(rayi);
@@ -311,11 +343,7 @@ mod tests {
 
             // line comes out of the cube but doesn't go in
             let ray = Ray::<f64>::new(p0 + dir * t_offset, dir, 1.0);
-            let rayi = Ray::<Interval<f64>>::new(
-                Point3::from(p0 + dir * t_offset),
-                Vector3::from(dir),
-                Interval::from(1.0),
-            );
+            let rayi = Ray::<Interval<f64>>::new(p0i + diri * t_offset, diri, Interval::one());
 
             let intersection = bbox.intersect_ray(ray);
             let intersectioni = bboxi.intersect_ray(rayi);
@@ -331,9 +359,9 @@ mod tests {
             // line fully inside the cube
             let ray = Ray::<f64>::new(p0 + dir * t_offset, p1 - (p0 + dir * t_offset), 1.0);
             let rayi = Ray::<Interval<f64>>::new(
-                Point3::from(p0 + dir * t_offset),
-                Vector3::from(p1 - (p0 + dir * t_offset)),
-                Interval::from(1.0),
+                p0i + diri * t_offset,
+                p1i - (p0i + diri * t_offset),
+                Interval::one(),
             );
 
             let intersection = bbox.intersect_ray(ray);
@@ -349,11 +377,7 @@ mod tests {
 
             // line outside the cube (almost reaching p1)
             let ray = Ray::<f64>::new(p1 + dir * 0.01, dir, 1.0);
-            let rayi = Ray::<Interval<f64>>::new(
-                Point3::from(p1 + dir * 0.01),
-                Vector3::from(dir),
-                Interval::from(1.0),
-            );
+            let rayi = Ray::<Interval<f64>>::new(p1i + diri * 0.01, diri, Interval::one());
 
             let intersection = bbox.intersect_ray(ray);
             let intersectioni = bboxi.intersect_ray(rayi);
@@ -363,9 +387,13 @@ mod tests {
 
             // line outside the cube (almost reaching p0)
             let ray = Ray::<f64>::new(p0 - dir * 1.01, dir, 1.0);
+            let rayi = Ray::<Interval<f64>>::new(p0i - diri * 1.01, diri, Interval::one());
 
             let intersection = bbox.intersect_ray(ray);
+            let intersectioni = bboxi.intersect_ray(rayi);
+
             assert!(intersection.is_none());
+            assert!(intersectioni.is_none());
         }
     }
 }

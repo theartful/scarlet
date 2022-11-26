@@ -101,9 +101,8 @@ impl<T: GFloat> AlmostEqual<Self> for Interval<T> {
     }
 }
 impl<T: GFloat> AlmostEqual<T> for Interval<T> {
-    /// checks that the two intervals almost have the same bounds
     fn almost_eq(self, other: T) -> bool {
-        self.inf.fequals(other) && self.sup.fequals(other)
+        self.contains(other) && self.inf.fequals(other) && self.sup.fequals(other)
     }
 }
 impl<T: GFloat> From<T> for Interval<T> {
