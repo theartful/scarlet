@@ -62,15 +62,8 @@ impl<T: GFloat> Interval<T> {
         }
     }
     #[inline]
-    pub fn sqrt(self) -> Option<Self> {
-        if self.is_nonnegative() {
-            Some(Self::new(
-                self.inf.sqrt().next_down(),
-                self.sup.sqrt().next_up(),
-            ))
-        } else {
-            None
-        }
+    pub fn sqrt(self) -> Self {
+        Self::new(self.inf.sqrt().next_down(), self.sup.sqrt().next_up())
     }
     #[inline]
     pub fn approx(self) -> T {
