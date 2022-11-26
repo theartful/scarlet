@@ -1,4 +1,7 @@
-use crate::math::{interval::Interval, scalar::GFloat};
+use crate::math::{
+    interval::Interval,
+    scalar::{GFloat, Scalar},
+};
 
 impl<T: GFloat> GFloat for Interval<T> {
     #[inline]
@@ -125,6 +128,59 @@ impl<T: GFloat> GFloat for Interval<T> {
     fn tan(self) -> Self {
         // TODO
         self.sin() / self.cos()
+    }
+    #[inline]
+    fn asin(self) -> Self {
+        self.map_monotonic_inc(T::asin)
+            .intersect(Interval::new(T::zero(), T::frac_pi_2_upper()))
+    }
+    #[inline]
+    fn acos(self) -> Self {
+        self.map_monotonic_dec(T::acos)
+            .intersect(Interval::new(T::zero(), T::frac_pi_2_upper()))
+    }
+    #[inline]
+    fn atan(self) -> Self {
+        self.map_monotonic_inc(T::atan)
+    }
+    #[inline]
+    fn atan2(self, rhs: Self) -> Self {
+        let y = self;
+        let x = rhs;
+
+        if x.is_zero() || y.is_zero() {
+            Interval::zero()
+        }
+        // X >= 0  -> first and fourth quadrants
+        // atan2 is the same as atan at this point
+        else if x.is_nonnegative() {
+            (y / x)
+                .map_monotonic_inc(T::atan)
+                .intersect(Interval::new(-T::frac_pi_2_upper(), T::frac_pi_2_upper()))
+        }
+        // X <= 0 -> second and third quadrants
+        // result can be in [-pi, -pi/2] union [pi/2, pi] = [-pi/2, pi/2]
+        else if x.is_nonpositive() {
+            // X <= 0 && Y >= 0 -> second quadrant
+            if y.is_nonnegative() {
+                ((y / x).map_monotonic_inc(T::atan) + T::pi())
+                    .intersect(Interval::new(T::frac_pi_2_lower(), T::pi_upper()))
+            }
+            // X <= 0 && Y <= 0 -> third quadrant
+            else if y.is_negative() {
+                ((y / x).map_monotonic_inc(T::atan) - T::pi())
+                    .intersect(Interval::new(-T::pi_upper(), -T::frac_pi_2_lower()))
+            }
+            // sign is uncertain. if y > 0 we get pi and if y < 0 we get -pi
+            else {
+                Self::new(-T::pi_upper(), T::pi_upper())
+            }
+        }
+        // we don't know if we're in the right half or the left half
+        else {
+            Self::atan2(y, Interval::new(x.inf, T::zero()))
+                .union(Self::atan2(y, Interval::new(T::zero(), x.sup)))
+        }
     }
 
     #[inline]
@@ -253,6 +309,30 @@ mod tests {
 
             assert!(sin_interval.almost_eq(estimated_sin_interval));
             assert!(cos_interval.almost_eq(estimated_cos_interval));
+        }
+    }
+
+    #[test]
+    fn test_interval_atan2() {
+        let seed: [u8; 32] = [123; 32];
+        let mut rng = SmallRng::from_seed(seed);
+        let dist = Uniform::new_inclusive(-1000.0, 1000.0);
+        let num_tests = 10000;
+
+        for _ in 0..num_tests {
+            let y = Interval::from(dist.sample(&mut rng));
+            let x = Interval::from(dist.sample(&mut rng));
+
+            let atan2_interval = Interval::atan2(y, x);
+            let atan2_scalar = f64::atan2(y.to_f64(), x.to_f64());
+            assert!(
+                atan2_interval.almost_eq(atan2_scalar),
+                "y = {:?} x = {:?} atan2_interval = {:?} atan2_scalar = {:?}",
+                y,
+                x,
+                atan2_interval,
+                atan2_scalar
+            );
         }
     }
 }

@@ -92,6 +92,32 @@ impl<T: GFloat> Interval<T> {
     pub fn is_same(&self, other: Self) -> bool {
         self.inf == other.inf && self.sup == other.sup
     }
+    #[inline]
+    pub fn extend_by_ulp(&self) -> Self {
+        Self::new(self.inf.next_down(), self.sup.next_up())
+    }
+    #[inline]
+    pub fn map_monotonic_inc<F>(&self, mut f: F) -> Self
+    where
+        F: FnMut(T) -> T,
+    {
+        Self::new(f(self.inf), f(self.sup)).extend_by_ulp()
+    }
+    #[inline]
+    pub fn map_monotonic_dec<F>(&self, mut f: F) -> Self
+    where
+        F: FnMut(T) -> T,
+    {
+        Self::new(f(self.sup), f(self.inf)).extend_by_ulp()
+    }
+    #[inline]
+    pub fn intersect(&self, rhs: Self) -> Self {
+        Self::new(self.inf.max(rhs.inf), self.sup.min(rhs.sup))
+    }
+    #[inline]
+    pub fn union(&self, rhs: Self) -> Self {
+        Self::new(self.inf.min(rhs.inf), self.sup.max(rhs.sup))
+    }
 }
 
 impl<T: GFloat> AlmostEqual<Self> for Interval<T> {

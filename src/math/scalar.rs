@@ -168,6 +168,10 @@ pub trait GFloat: SignedScalar {
     fn cos(self) -> Self;
     fn sin_cos(self) -> (Self, Self);
     fn tan(self) -> Self;
+    fn asin(self) -> Self;
+    fn acos(self) -> Self;
+    fn atan(self) -> Self;
+    fn atan2(self, rhs: Self) -> Self;
 
     fn fequals(self, other: Self) -> bool {
         // https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
@@ -512,6 +516,22 @@ impl GFloat for f32 {
     fn tan(self) -> Self {
         self.tan()
     }
+    #[inline]
+    fn asin(self) -> Self {
+        self.asin()
+    }
+    #[inline]
+    fn acos(self) -> Self {
+        self.acos()
+    }
+    #[inline]
+    fn atan(self) -> Self {
+        self.atan()
+    }
+    #[inline]
+    fn atan2(self, rhs: Self) -> Self {
+        self.atan2(rhs)
+    }
 }
 
 impl GFloat for f64 {
@@ -676,6 +696,22 @@ impl GFloat for f64 {
     #[inline]
     fn tan(self) -> Self {
         self.tan()
+    }
+    #[inline]
+    fn asin(self) -> Self {
+        self.asin()
+    }
+    #[inline]
+    fn acos(self) -> Self {
+        self.acos()
+    }
+    #[inline]
+    fn atan(self) -> Self {
+        self.atan()
+    }
+    #[inline]
+    fn atan2(self, rhs: Self) -> Self {
+        self.atan2(rhs)
     }
 }
 
