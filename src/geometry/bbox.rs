@@ -1,8 +1,11 @@
 use crate::{
-    geometry::ray::Ray,
+    geometry::{
+        ray::Ray,
+        shape::{Bounded3, IntersectionResult, IntersectsRay, Shape, SurfaceInteraction},
+    },
     math::{
         scalar::{Float, GFloat, Int, Scalar},
-        vector::{Point3, Vector3},
+        vector::{Normal3, Point2, Point3, Vector3},
     },
 };
 
@@ -13,44 +16,6 @@ pub type Bbox3i = Bbox3<Int>;
 pub struct Bbox3<T: Scalar> {
     pub pmin: Point3<T>,
     pub pmax: Point3<T>,
-}
-
-pub trait Bounded3<T: Scalar> {
-    fn bbox(&self) -> Bbox3<T>;
-
-    fn xmin(&self) -> T {
-        self.bbox().pmin.x()
-    }
-    fn ymin(&self) -> T {
-        self.bbox().pmin.y()
-    }
-    fn zmin(&self) -> T {
-        self.bbox().pmin.z()
-    }
-    fn xmax(&self) -> T {
-        self.bbox().pmax.x()
-    }
-    fn ymax(&self) -> T {
-        self.bbox().pmax.y()
-    }
-    fn zmax(&self) -> T {
-        self.bbox().pmax.z()
-    }
-}
-
-impl<T: Scalar> Bounded3<T> for Bbox3<T> {
-    fn bbox(&self) -> Bbox3<T> {
-        *self
-    }
-}
-
-impl<T: Scalar> Bounded3<T> for Point3<T> {
-    fn bbox(&self) -> Bbox3<T> {
-        Bbox3::<T>::new(
-            Point3::<T>::new(self.x(), self.y(), self.z()),
-            Point3::<T>::new(self.x(), self.y(), self.z()),
-        )
-    }
 }
 
 impl<T: Scalar> Default for Bbox3<T> {
@@ -150,6 +115,12 @@ impl<T: Scalar> Bbox3<T> {
     }
 }
 
+impl<T: Scalar> Bounded3<T> for Bbox3<T> {
+    fn bbox(&self) -> Bbox3<T> {
+        *self
+    }
+}
+
 impl<T: Scalar> std::ops::Add<Bbox3<T>> for Bbox3<T> {
     type Output = Bbox3<T>;
 
@@ -185,6 +156,125 @@ impl<T: GFloat> Bbox3<T> {
         }
     }
 }
+
+impl<T: GFloat> IntersectsRay<T> for Bbox3<T> {
+    fn do_intersect(&self, ray: Ray<T>) -> bool {
+        self.intersect_ray(ray).is_some()
+    }
+
+    fn intersect(&self, ray: Ray<T>) -> Option<IntersectionResult<T>> {
+        self.intersect_ray(ray).map(|(t_ray, _)| {
+            let p = ray.eval(t_ray);
+
+            // we need to find which face we hit
+            let distances = [
+                (p.x() - self.xmin()).abs(),
+                (p.x() - self.xmax()).abs(),
+                (p.y() - self.ymin()).abs(),
+                (p.y() - self.ymax()).abs(),
+                (p.z() - self.zmin()).abs(),
+                (p.z() - self.zmax()).abs(),
+            ];
+
+            let mut min_distance_idx = 0;
+            for i in 0..6 {
+                if distances[i] < distances[min_distance_idx] {
+                    min_distance_idx = i;
+                }
+            }
+
+            // TODO: implement uv mapping for bbox
+            // why am I even doing this? I should implement a general mesh
+            // structure with custom uv mapping!
+
+            //
+            //     6----7      y
+            //    /|   /|      ^
+            //   2----3 |      |
+            //   | 4--|-5      |
+            //   |/   |/       |
+            //   0----1        -----------> x
+            //
+            //   0        4
+            //   1        5
+            //   2        6
+            //   3        7
+            //   ----------->z
+            //
+            //  0.75  6-----7
+            //        |     |                          ^ v
+            //        |     |                          |
+            //   0.5  2-----3-----7-----6-----2        |
+            //        |     |     |     |     |        |
+            //        |     |     |     |     |        |             u
+            //  0.25  0-----1-----5-----4-----0        -------------->
+            //        |     |
+            //        |     |
+            //     0  4-----5
+            //
+            //        0    0.25  0.5   0.75  1
+            //
+            let surface_interaction = match min_distance_idx {
+                // 0 2 6 4
+                0 => SurfaceInteraction {
+                    p: Point3::new(self.xmin(), p.y(), p.z()),
+                    n: Normal3::new(-T::one(), T::zero(), T::zero()),
+                    uv: Point2::new(T::zero(), T::zero()),
+                    dpdu: Vector3::new(T::zero(), T::zero(), -T::one()),
+                    dpdv: Vector3::new(T::zero(), T::one(), T::zero()),
+                },
+                // 1 5 7 3
+                1 => SurfaceInteraction {
+                    p: Point3::new(self.xmax(), p.y(), p.z()),
+                    n: Normal3::new(T::one(), T::zero(), T::zero()),
+                    uv: Point2::new(T::zero(), T::zero()),
+                    dpdu: Vector3::new(T::zero(), T::zero(), T::one()),
+                    dpdv: Vector3::new(T::zero(), T::one(), T::zero()),
+                },
+                // 0 1 5 4
+                2 => SurfaceInteraction {
+                    p: Point3::new(p.x(), self.ymin(), p.z()),
+                    n: Normal3::new(T::zero(), -T::one(), T::zero()),
+                    uv: Point2::new(T::zero(), T::zero()),
+                    dpdu: Vector3::new(T::one(), T::zero(), T::zero()),
+                    dpdv: Vector3::new(T::zero(), T::zero(), -T::one()),
+                },
+                // 2 6 7 3
+                3 => SurfaceInteraction {
+                    p: Point3::new(p.x(), self.ymax(), p.z()),
+                    n: Normal3::new(T::zero(), T::one(), T::zero()),
+                    uv: Point2::new(T::zero(), T::zero()),
+                    dpdu: Vector3::new(T::one(), T::zero(), T::zero()),
+                    dpdv: Vector3::new(T::zero(), T::zero(), T::one()),
+                },
+                // 0 2 3 1
+                4 => SurfaceInteraction {
+                    p: Point3::new(p.x(), p.y(), self.zmin()),
+                    n: Normal3::new(T::zero(), T::zero(), -T::one()),
+                    uv: Point2::new(T::zero(), T::zero()),
+                    dpdu: Vector3::new(T::one(), T::zero(), T::zero()),
+                    dpdv: Vector3::new(T::zero(), T::one(), T::zero()),
+                },
+                // 4 6 7 5
+                5 => SurfaceInteraction {
+                    p: Point3::new(p.x(), p.y(), self.zmax()),
+                    n: Normal3::new(T::zero(), T::zero(), T::one()),
+                    uv: Point2::new(T::zero(), T::zero()),
+                    dpdu: Vector3::new(-T::one(), T::zero(), T::zero()),
+                    dpdv: Vector3::new(T::zero(), T::one(), T::zero()),
+                },
+                _ => std::panic!(),
+            };
+
+            IntersectionResult {
+                surface_interaction,
+                t_ray,
+            }
+        })
+    }
+}
+
+impl<T: GFloat> Shape<T> for Bbox3<T> {}
 
 #[cfg(test)]
 mod tests {
