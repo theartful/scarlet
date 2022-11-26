@@ -425,13 +425,16 @@ impl<T: Scalar, const N: usize> std::ops::Sub<Vector<T, N>> for Point<T, N> {
     }
 }
 
-impl Norm for Vector2<f32> {}
-impl Norm for Vector2<f64> {}
-impl Norm for Vector3<f32> {}
-impl Norm for Vector3<f64> {}
-impl Norm for Vector4<f32> {}
-impl Norm for Vector4<f64> {}
-impl Norm for Normal3<f64> {}
+impl<T: SignedScalar, const N: usize, U> Norm for GenericVector<T, N, U> {
+    #[inline]
+    fn square_norm(self) -> Self::ScalarType {
+        let mut result = T::zero();
+        for i in 0..N {
+            result += self.vec[i].square();
+        }
+        result
+    }
+}
 
 // for convenience so that we don't have to import InnerProduct
 impl<T: SignedScalar, const N: usize, U> GenericVector<T, N, U> {

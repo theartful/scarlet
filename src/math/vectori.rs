@@ -38,11 +38,3 @@ impl<T: GFloat, const N: usize, U> From<GenericVector<Interval<T>, N, U>>
         Self::from(rhs.vec.map(|x| x.approx()))
     }
 }
-
-// this is more accurate than self.dot(self) because of interval arithmetic
-impl Norm for Vector3fi {
-    #[inline]
-    fn square_norm(self) -> Self::ScalarType {
-        self.x().square() + self.y().square() + self.z().square()
-    }
-}
