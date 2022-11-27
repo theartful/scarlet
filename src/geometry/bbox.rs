@@ -163,6 +163,7 @@ impl<T: GFloat> IntersectsRay<T> for Bbox3<T> {
     }
 
     fn intersect(&self, ray: Ray<T>) -> Option<IntersectionResult<T>> {
+        // FIXME: this does not work when we're inside the box!
         self.intersect_ray(ray).map(|(t_ray, _)| {
             let p = ray.eval(t_ray);
 

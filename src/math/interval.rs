@@ -250,7 +250,7 @@ impl<T: GFloat> std::ops::Mul<T> for Interval<T> {
 
     #[inline]
     fn mul(self, rhs: T) -> Self::Output {
-        if rhs >= T::zero() {
+        if rhs.is_nonnegative() {
             Self::new((self.inf * rhs).next_down(), (self.sup * rhs).next_up())
         } else {
             Self::new((self.sup * rhs).next_down(), (self.inf * rhs).next_up())

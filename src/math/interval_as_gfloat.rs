@@ -71,7 +71,10 @@ impl<T: GFloat> GFloat for Interval<T> {
     }
     #[inline]
     fn sqrt(self) -> Self {
-        Self::new(self.inf.sqrt().next_down(), self.sup.sqrt().next_up())
+        Self::from(T::min_max(
+            self.inf.sqrt().next_down(),
+            self.sup.sqrt().next_up(),
+        ))
     }
 
     fn sin(self) -> Self {

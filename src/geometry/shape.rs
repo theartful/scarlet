@@ -43,7 +43,7 @@ pub trait Bounded3<T: Scalar> {
 }
 
 impl<T: GFloat> SurfaceInteraction<T> {
-    pub fn init(p: Point3<T>, uv: Point2<T>, dpdu: Vector3<T>, dpdv: Vector3<T>) -> Self {
+    pub fn new(p: Point3<T>, uv: Point2<T>, dpdu: Vector3<T>, dpdv: Vector3<T>) -> Self {
         SurfaceInteraction {
             p,
             n: Normal3::from(dpdu.cross(dpdv).normalize()),
