@@ -1,6 +1,6 @@
 use crate::{
     geometry::{
-        primitive::{Bounded3, IntersectionResult, IntersectsRay, SurfaceInteraction},
+        primitive::{Bounded3, IntersectionResult, IntersectsRay, Primitive, SurfaceInteraction},
         ray::Rayf,
     },
     math::{
@@ -144,7 +144,7 @@ impl Bbox3 {
         let tnear = t1.x().max(t1.y()).max(t1.z());
         let tfar = t2.x().min(t2.y()).min(t2.z());
 
-        if tnear > ray.tmax || tfar < Float::zero() {
+        if tnear > ray.tmax || tfar < Float::zero() || tnear > tfar {
             None
         } else {
             Some((tnear.max(Float::zero()), tfar.min(ray.tmax)))
@@ -312,6 +312,8 @@ fn map_bbox(m: Matrix4x4f, bbox: &Bbox3) -> Bbox3 {
         Point3f::new(pmax[0], pmax[1], pmax[2]),
     )
 }
+
+impl Primitive for Bbox3 {}
 
 #[cfg(test)]
 mod tests {
