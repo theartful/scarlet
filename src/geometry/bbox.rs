@@ -1,50 +1,48 @@
 use crate::{
     geometry::{
-        ray::Ray,
-        shape::{Bounded3, IntersectionResult, IntersectsRay, Shape, SurfaceInteraction},
+        primitive::{Bounded3, IntersectionResult, IntersectsRay, SurfaceInteraction},
+        ray::Rayf,
     },
     math::{
-        scalar::{Float, GFloat, Int, Scalar},
-        vector::{Normal3, Point2, Point3, Vector3},
+        scalar::{Float, GFloat, Scalar},
+        transform::{Matrix4x4f, TransformMap, Transformf},
+        vector::{Normal3f, Point2f, Point3f, Vector3f},
     },
 };
 
-pub type Bbox3f = Bbox3<Float>;
-pub type Bbox3i = Bbox3<Int>;
-
 #[derive(Debug, Clone, Copy)]
-pub struct Bbox3<T: Scalar> {
-    pub pmin: Point3<T>,
-    pub pmax: Point3<T>,
+pub struct Bbox3 {
+    pub pmin: Point3f,
+    pub pmax: Point3f,
 }
 
-impl<T: Scalar> Default for Bbox3<T> {
+impl Default for Bbox3 {
     fn default() -> Self {
-        let highest = T::highest();
-        let lowest = T::lowest();
+        let highest = Float::highest();
+        let lowest = Float::lowest();
         Bbox3 {
-            pmin: Point3::<T>::new(highest, highest, highest),
-            pmax: Point3::<T>::new(lowest, lowest, lowest),
+            pmin: Point3f::new(highest, highest, highest),
+            pmax: Point3f::new(lowest, lowest, lowest),
         }
     }
 }
 
-impl<T: Scalar> Bbox3<T> {
-    pub fn new(p1: Point3<T>, p2: Point3<T>) -> Self {
+impl Bbox3 {
+    pub fn new(p1: Point3f, p2: Point3f) -> Self {
         Bbox3 {
-            pmin: Point3::<T>::new(p1.x().min(p2.x()), p1.y().min(p2.y()), p1.z().min(p2.z())),
-            pmax: Point3::<T>::new(p1.x().max(p2.x()), p1.y().max(p2.y()), p1.z().max(p2.z())),
+            pmin: Point3f::new(p1.x().min(p2.x()), p1.y().min(p2.y()), p1.z().min(p2.z())),
+            pmax: Point3f::new(p1.x().max(p2.x()), p1.y().max(p2.y()), p1.z().max(p2.z())),
         }
     }
 
-    pub fn union(&self, rhs: Bbox3<T>) -> Self {
+    pub fn union(&self, rhs: &Self) -> Self {
         Bbox3 {
-            pmin: Point3::<T>::new(
+            pmin: Point3f::new(
                 self.xmin().min(rhs.xmin()),
                 self.ymin().min(rhs.ymin()),
                 self.zmin().min(rhs.zmin()),
             ),
-            pmax: Point3::<T>::new(
+            pmax: Point3f::new(
                 self.xmax().max(rhs.xmax()),
                 self.ymax().max(rhs.ymax()),
                 self.zmax().max(rhs.zmax()),
@@ -52,14 +50,14 @@ impl<T: Scalar> Bbox3<T> {
         }
     }
 
-    pub fn intersect(&self, rhs: Bbox3<T>) -> Self {
+    pub fn intersect(&self, rhs: &Self) -> Self {
         Bbox3 {
-            pmin: Point3::<T>::new(
+            pmin: Point3f::new(
                 self.xmin().max(rhs.xmin()),
                 self.ymin().max(rhs.ymin()),
                 self.zmin().max(rhs.zmin()),
             ),
-            pmax: Point3::<T>::new(
+            pmax: Point3f::new(
                 self.xmax().min(rhs.xmax()),
                 self.ymax().min(rhs.ymax()),
                 self.zmax().min(rhs.zmax()),
@@ -67,7 +65,7 @@ impl<T: Scalar> Bbox3<T> {
         }
     }
 
-    pub fn overlaps(&self, rhs: &Bbox3<T>) -> bool {
+    pub fn overlaps(&self, rhs: &Self) -> bool {
         self.xmax() > rhs.xmin()
             && rhs.xmax() > self.xmin()
             && self.ymax() > rhs.ymin()
@@ -76,7 +74,7 @@ impl<T: Scalar> Bbox3<T> {
             && rhs.zmax() > self.zmin()
     }
 
-    pub fn inside(&self, rhs: Point3<T>) -> bool {
+    pub fn inside(&self, rhs: Point3f) -> bool {
         rhs.x() >= self.xmin()
             && rhs.x() <= self.xmax()
             && rhs.y() >= self.ymin()
@@ -85,18 +83,15 @@ impl<T: Scalar> Bbox3<T> {
             && rhs.z() <= self.zmax()
     }
 
-    pub fn diagonal(&self) -> Vector3<T> {
+    pub fn diagonal(&self) -> Vector3f {
         self.pmax - self.pmin
     }
 
-    pub fn center(&self) -> Point3<T>
-    where
-        T: GFloat,
-    {
-        (self.pmax + self.pmin) * T::half()
+    pub fn center(&self) -> Point3f {
+        (self.pmax + self.pmin) * Float::half()
     }
 
-    pub fn max_extent(&self) -> ((T, T), u8) {
+    pub fn max_extent(&self) -> ((Float, Float), u8) {
         let x_extent = self.pmax.x() - self.pmin.x();
         let y_extent = self.pmax.y() - self.pmin.y();
         let z_extent = self.pmax.z() - self.pmin.z();
@@ -115,30 +110,30 @@ impl<T: Scalar> Bbox3<T> {
     }
 }
 
-impl<T: Scalar> Bounded3<T> for Bbox3<T> {
-    fn bbox(&self) -> Bbox3<T> {
+impl Bounded3 for Bbox3 {
+    fn bbox(&self) -> Bbox3 {
         *self
     }
 }
 
-impl<T: Scalar> std::ops::Add<Bbox3<T>> for Bbox3<T> {
-    type Output = Bbox3<T>;
+impl std::ops::Add<Bbox3> for Bbox3 {
+    type Output = Bbox3;
 
-    fn add(self, rhs: Bbox3<T>) -> Self::Output {
-        self.union(rhs)
+    fn add(self, rhs: Bbox3) -> Self::Output {
+        self.union(&rhs)
     }
 }
 
-impl<T: Scalar> std::ops::AddAssign<Bbox3<T>> for Bbox3<T> {
-    fn add_assign(&mut self, rhs: Bbox3<T>) {
-        *self = self.union(rhs);
+impl std::ops::AddAssign<Bbox3> for Bbox3 {
+    fn add_assign(&mut self, rhs: Bbox3) {
+        *self = self.union(&rhs);
     }
 }
 
-impl<T: GFloat> Bbox3<T> {
+impl Bbox3 {
     /// Performs ray-box intersection and returns the intersection period of
     /// the ray
-    pub fn intersect_ray(self, ray: Ray<T>) -> Option<(T, T)> {
+    pub fn intersect_ray(self, ray: Rayf) -> Option<(Float, Float)> {
         // should we store the reciprocal of ray.direction?
         let tmin = (self.pmin - ray.origin) / ray.direction;
         let tmax = (self.pmax - ray.origin) / ray.direction;
@@ -149,20 +144,20 @@ impl<T: GFloat> Bbox3<T> {
         let tnear = t1.x().max(t1.y()).max(t1.z());
         let tfar = t2.x().min(t2.y()).min(t2.z());
 
-        if tnear > ray.tmax || tfar < T::zero() {
+        if tnear > ray.tmax || tfar < Float::zero() {
             None
         } else {
-            Some((tnear.max(T::zero()), tfar.min(ray.tmax)))
+            Some((tnear.max(Float::zero()), tfar.min(ray.tmax)))
         }
     }
 }
 
-impl<T: GFloat> IntersectsRay<T> for Bbox3<T> {
-    fn do_intersect(&self, ray: Ray<T>) -> bool {
+impl IntersectsRay for Bbox3 {
+    fn do_intersect(&self, ray: Rayf) -> bool {
         self.intersect_ray(ray).is_some()
     }
 
-    fn intersect(&self, ray: Ray<T>) -> Option<IntersectionResult<T>> {
+    fn intersect(&self, ray: Rayf) -> Option<IntersectionResult> {
         // FIXME: this does not work when we're inside the box!
         self.intersect_ray(ray).map(|(t_ray, _)| {
             let p = ray.eval(t_ray);
@@ -218,51 +213,51 @@ impl<T: GFloat> IntersectsRay<T> for Bbox3<T> {
             let surface_interaction = match min_distance_idx {
                 // 0 2 6 4
                 0 => SurfaceInteraction {
-                    p: Point3::new(self.xmin(), p.y(), p.z()),
-                    n: Normal3::new(-T::one(), T::zero(), T::zero()),
-                    uv: Point2::new(T::zero(), T::zero()),
-                    dpdu: Vector3::new(T::zero(), T::zero(), -T::one()),
-                    dpdv: Vector3::new(T::zero(), T::one(), T::zero()),
+                    p: Point3f::new(self.xmin(), p.y(), p.z()),
+                    n: Normal3f::new(-Float::one(), Float::zero(), Float::zero()),
+                    uv: Point2f::new(Float::zero(), Float::zero()),
+                    dpdu: Vector3f::new(Float::zero(), Float::zero(), -Float::one()),
+                    dpdv: Vector3f::new(Float::zero(), Float::one(), Float::zero()),
                 },
                 // 1 5 7 3
                 1 => SurfaceInteraction {
-                    p: Point3::new(self.xmax(), p.y(), p.z()),
-                    n: Normal3::new(T::one(), T::zero(), T::zero()),
-                    uv: Point2::new(T::zero(), T::zero()),
-                    dpdu: Vector3::new(T::zero(), T::zero(), T::one()),
-                    dpdv: Vector3::new(T::zero(), T::one(), T::zero()),
+                    p: Point3f::new(self.xmax(), p.y(), p.z()),
+                    n: Normal3f::new(Float::one(), Float::zero(), Float::zero()),
+                    uv: Point2f::new(Float::zero(), Float::zero()),
+                    dpdu: Vector3f::new(Float::zero(), Float::zero(), Float::one()),
+                    dpdv: Vector3f::new(Float::zero(), Float::one(), Float::zero()),
                 },
                 // 0 1 5 4
                 2 => SurfaceInteraction {
-                    p: Point3::new(p.x(), self.ymin(), p.z()),
-                    n: Normal3::new(T::zero(), -T::one(), T::zero()),
-                    uv: Point2::new(T::zero(), T::zero()),
-                    dpdu: Vector3::new(T::one(), T::zero(), T::zero()),
-                    dpdv: Vector3::new(T::zero(), T::zero(), -T::one()),
+                    p: Point3f::new(p.x(), self.ymin(), p.z()),
+                    n: Normal3f::new(Float::zero(), -Float::one(), Float::zero()),
+                    uv: Point2f::new(Float::zero(), Float::zero()),
+                    dpdu: Vector3f::new(Float::one(), Float::zero(), Float::zero()),
+                    dpdv: Vector3f::new(Float::zero(), Float::zero(), -Float::one()),
                 },
                 // 2 6 7 3
                 3 => SurfaceInteraction {
-                    p: Point3::new(p.x(), self.ymax(), p.z()),
-                    n: Normal3::new(T::zero(), T::one(), T::zero()),
-                    uv: Point2::new(T::zero(), T::zero()),
-                    dpdu: Vector3::new(T::one(), T::zero(), T::zero()),
-                    dpdv: Vector3::new(T::zero(), T::zero(), T::one()),
+                    p: Point3f::new(p.x(), self.ymax(), p.z()),
+                    n: Normal3f::new(Float::zero(), Float::one(), Float::zero()),
+                    uv: Point2f::new(Float::zero(), Float::zero()),
+                    dpdu: Vector3f::new(Float::one(), Float::zero(), Float::zero()),
+                    dpdv: Vector3f::new(Float::zero(), Float::zero(), Float::one()),
                 },
                 // 0 2 3 1
                 4 => SurfaceInteraction {
-                    p: Point3::new(p.x(), p.y(), self.zmin()),
-                    n: Normal3::new(T::zero(), T::zero(), -T::one()),
-                    uv: Point2::new(T::zero(), T::zero()),
-                    dpdu: Vector3::new(T::one(), T::zero(), T::zero()),
-                    dpdv: Vector3::new(T::zero(), T::one(), T::zero()),
+                    p: Point3f::new(p.x(), p.y(), self.zmin()),
+                    n: Normal3f::new(Float::zero(), Float::zero(), -Float::one()),
+                    uv: Point2f::new(Float::zero(), Float::zero()),
+                    dpdu: Vector3f::new(Float::one(), Float::zero(), Float::zero()),
+                    dpdv: Vector3f::new(Float::zero(), Float::one(), Float::zero()),
                 },
                 // 4 6 7 5
                 5 => SurfaceInteraction {
-                    p: Point3::new(p.x(), p.y(), self.zmax()),
-                    n: Normal3::new(T::zero(), T::zero(), T::one()),
-                    uv: Point2::new(T::zero(), T::zero()),
-                    dpdu: Vector3::new(-T::one(), T::zero(), T::zero()),
-                    dpdv: Vector3::new(T::zero(), T::one(), T::zero()),
+                    p: Point3f::new(p.x(), p.y(), self.zmax()),
+                    n: Normal3f::new(Float::zero(), Float::zero(), Float::one()),
+                    uv: Point2f::new(Float::zero(), Float::zero()),
+                    dpdu: Vector3f::new(-Float::one(), Float::zero(), Float::zero()),
+                    dpdv: Vector3f::new(Float::zero(), Float::one(), Float::zero()),
                 },
                 _ => std::panic!(),
             };
@@ -275,12 +270,53 @@ impl<T: GFloat> IntersectsRay<T> for Bbox3<T> {
     }
 }
 
-impl<T: GFloat> Shape<T> for Bbox3<T> {}
+impl TransformMap<Bbox3> for Transformf {
+    type Output = Bbox3;
+
+    fn map(&self, bbox: Bbox3) -> Self::Output {
+        map_bbox(self.matrix(), &bbox)
+    }
+
+    fn map_inverse(&self, bbox: Bbox3) -> Self::Output {
+        map_bbox(self.inverse_matrix(), &bbox)
+    }
+}
+
+#[inline(always)]
+fn map_bbox(m: Matrix4x4f, bbox: &Bbox3) -> Bbox3 {
+    // Graphics Gems: Transforming Axis-aligned Bounding Boxes
+    // by James Arvo 1990
+    let mut pmin = m.col(3);
+    let mut pmax = pmin;
+
+    let bbox_pmin: [Float; 3] = [bbox.pmin.x(), bbox.pmin.y(), bbox.pmin.z()];
+    let bbox_pmax: [Float; 3] = [bbox.pmax.x(), bbox.pmax.y(), bbox.pmax.z()];
+
+    for i in 0..3 {
+        for j in 0..3 {
+            let a = m[i][j] * bbox_pmin[j];
+            let b = m[i][j] * bbox_pmax[j];
+
+            if a < b {
+                pmin[j] += a;
+                pmax[j] += b;
+            } else {
+                pmin[j] += b;
+                pmax[j] += a;
+            }
+        }
+    }
+
+    Bbox3::new(
+        Point3f::new(pmin[0], pmin[1], pmin[2]),
+        Point3f::new(pmax[0], pmax[1], pmax[2]),
+    )
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::{interval::Interval, scalar::AlmostEqual};
+    use crate::math::scalar::AlmostEqual;
     use rand::{
         distributions::{Distribution, Uniform},
         rngs::SmallRng,
@@ -297,20 +333,18 @@ mod tests {
         for _ in 0..num_tests {
             let dist = Uniform::new_inclusive(-100.0, 100.0);
 
-            let bbox = Bbox3::<f64>::new(
-                Point3::new(
+            let bbox = Bbox3::new(
+                Point3f::new(
                     dist.sample(&mut rng),
                     dist.sample(&mut rng),
                     dist.sample(&mut rng),
                 ),
-                Point3::new(
+                Point3f::new(
                     dist.sample(&mut rng),
                     dist.sample(&mut rng),
                     dist.sample(&mut rng),
                 ),
             );
-            let bboxi =
-                Bbox3::<Interval<f64>>::new(Point3::from(bbox.pmin), Point3::from(bbox.pmax));
 
             //     6----7      y
             //    /|   /|      ^
@@ -320,24 +354,14 @@ mod tests {
             //   0----1        -----------> x
             //
             let ps = [
-                Point3::new(bbox.xmin(), bbox.ymin(), bbox.zmin()),
-                Point3::new(bbox.xmax(), bbox.ymin(), bbox.zmin()),
-                Point3::new(bbox.xmin(), bbox.ymax(), bbox.zmin()),
-                Point3::new(bbox.xmax(), bbox.ymax(), bbox.zmin()),
-                Point3::new(bbox.xmin(), bbox.ymin(), bbox.zmax()),
-                Point3::new(bbox.xmax(), bbox.ymin(), bbox.zmax()),
-                Point3::new(bbox.xmin(), bbox.ymax(), bbox.zmax()),
-                Point3::new(bbox.xmax(), bbox.ymax(), bbox.zmax()),
-            ];
-            let psi: [Point3<Interval<f64>>; 8] = [
-                Point3::from(ps[0]),
-                Point3::from(ps[1]),
-                Point3::from(ps[2]),
-                Point3::from(ps[3]),
-                Point3::from(ps[4]),
-                Point3::from(ps[5]),
-                Point3::from(ps[6]),
-                Point3::from(ps[7]),
+                Point3f::new(bbox.xmin(), bbox.ymin(), bbox.zmin()),
+                Point3f::new(bbox.xmax(), bbox.ymin(), bbox.zmin()),
+                Point3f::new(bbox.xmin(), bbox.ymax(), bbox.zmin()),
+                Point3f::new(bbox.xmax(), bbox.ymax(), bbox.zmin()),
+                Point3f::new(bbox.xmin(), bbox.ymin(), bbox.zmax()),
+                Point3f::new(bbox.xmax(), bbox.ymin(), bbox.zmax()),
+                Point3f::new(bbox.xmin(), bbox.ymax(), bbox.zmax()),
+                Point3f::new(bbox.xmax(), bbox.ymax(), bbox.zmax()),
             ];
 
             // choose two faces by random
@@ -363,128 +387,71 @@ mod tests {
                 ps[faces[1].2],
                 ps[faces[1].3],
             );
-            let face0i = (
-                psi[faces[0].0],
-                psi[faces[0].1],
-                psi[faces[0].2],
-                psi[faces[0].3],
-            );
-            let face1i = (
-                psi[faces[1].0],
-                psi[faces[1].1],
-                psi[faces[1].2],
-                psi[faces[1].3],
-            );
 
             let dist_t = Uniform::new_inclusive(0.0, 1.0);
 
             // sample a random point from the first face
             let (t0, t1) = (dist_t.sample(&mut rng), dist_t.sample(&mut rng));
             let p0 = face0.0 + (face0.1 - face0.0) * t0 + (face0.2 - face0.0) * t1;
-            let p0i = face0i.0 + (face0i.1 - face0i.0) * t0 + (face0i.2 - face0i.0) * t1;
 
             // sample a random point from the second face
             let (t0, t1) = (dist_t.sample(&mut rng), dist_t.sample(&mut rng));
             let p1 = face1.0 + (face1.1 - face1.0) * t0 + (face1.2 - face1.0) * t1;
-            let p1i = face1i.0 + (face1i.1 - face1i.0) * t0 + (face1i.2 - face1i.0) * t1;
 
             // create ray connecting p0 and p1
             let dir = p1 - p0;
-            let diri = p1i - p0i;
 
             // line  fully passes through the cube
             let t_offset = dist_t.sample(&mut rng);
             let origin = p0 - dir * t_offset;
-            let origini = p0i - diri * t_offset;
-            let ray = Ray::<f64>::new(origin, dir, 1.0 + 2.0 * t_offset);
-            let rayi = Ray::<Interval<f64>>::new(
-                origini,
-                diri,
-                Interval::from(1.0) + Interval::from(2.0) * t_offset,
-            );
+            let ray = Rayf::new(origin, dir, 1.0 + 2.0 * t_offset);
 
             let intersection = bbox.intersect_ray(ray);
-            let intersectioni = bboxi.intersect_ray(rayi);
 
             assert!(intersection.is_some());
             assert!(intersection.unwrap().0.almost_eq(t_offset));
             assert!(intersection.unwrap().1.almost_eq(1.0 + t_offset));
 
-            assert!(intersectioni.is_some());
-            assert!(intersectioni.unwrap().0.almost_eq(t_offset));
-            assert!(intersectioni
-                .unwrap()
-                .1
-                .almost_eq(Interval::one() + t_offset));
-
             // line goes into the cube but doesn't come out
-            let ray = Ray::<f64>::new(origin, dir, 1.0);
-            let rayi = Ray::<Interval<f64>>::new(origini, diri, Interval::one());
+            let ray = Rayf::new(origin, dir, 1.0);
 
             let intersection = bbox.intersect_ray(ray);
-            let intersectioni = bboxi.intersect_ray(rayi);
 
             assert!(intersection.is_some());
             assert!(intersection.unwrap().0.almost_eq(t_offset));
             assert!(intersection.unwrap().1.almost_eq(1.0));
 
-            assert!(intersectioni.is_some());
-            assert!(intersectioni.unwrap().0.almost_eq(t_offset));
-            assert!(intersectioni.unwrap().1.almost_eq(1.0));
-
             // line comes out of the cube but doesn't go in
-            let ray = Ray::<f64>::new(p0 + dir * t_offset, dir, 1.0);
-            let rayi = Ray::<Interval<f64>>::new(p0i + diri * t_offset, diri, Interval::one());
+            let ray = Rayf::new(p0 + dir * t_offset, dir, 1.0);
 
             let intersection = bbox.intersect_ray(ray);
-            let intersectioni = bboxi.intersect_ray(rayi);
 
             assert!(intersection.is_some());
             assert!(intersection.unwrap().0.almost_eq(0.0));
             assert!(intersection.unwrap().1.almost_eq(1.0 - t_offset));
 
-            assert!(intersectioni.is_some());
-            assert!(intersectioni.unwrap().0.almost_eq(0.0));
-            assert!(intersectioni.unwrap().1.almost_eq(1.0 - t_offset));
-
             // line fully inside the cube
-            let ray = Ray::<f64>::new(p0 + dir * t_offset, p1 - (p0 + dir * t_offset), 1.0);
-            let rayi = Ray::<Interval<f64>>::new(
-                p0i + diri * t_offset,
-                p1i - (p0i + diri * t_offset),
-                Interval::one(),
-            );
+            let ray = Rayf::new(p0 + dir * t_offset, p1 - (p0 + dir * t_offset), 1.0);
 
             let intersection = bbox.intersect_ray(ray);
-            let intersectioni = bboxi.intersect_ray(rayi);
 
             assert!(intersection.is_some());
             assert!(intersection.unwrap().0.almost_eq(0.0));
             assert!(intersection.unwrap().1.almost_eq(1.0));
 
-            assert!(intersectioni.is_some());
-            assert!(intersectioni.unwrap().0.almost_eq(0.0));
-            assert!(intersectioni.unwrap().1.almost_eq(1.0));
-
             // line outside the cube (almost reaching p1)
-            let ray = Ray::<f64>::new(p1 + dir * 0.01, dir, 1.0);
-            let rayi = Ray::<Interval<f64>>::new(p1i + diri * 0.01, diri, Interval::one());
+            let ray = Rayf::new(p1 + dir * 0.01, dir, 1.0);
 
             let intersection = bbox.intersect_ray(ray);
-            let intersectioni = bboxi.intersect_ray(rayi);
 
             assert!(intersection.is_none());
-            assert!(intersectioni.is_none());
 
             // line outside the cube (almost reaching p0)
-            let ray = Ray::<f64>::new(p0 - dir * 1.01, dir, 1.0);
-            let rayi = Ray::<Interval<f64>>::new(p0i - diri * 1.01, diri, Interval::one());
+            let ray = Rayf::new(p0 - dir * 1.01, dir, 1.0);
 
             let intersection = bbox.intersect_ray(ray);
-            let intersectioni = bboxi.intersect_ray(rayi);
 
             assert!(intersection.is_none());
-            assert!(intersectioni.is_none());
         }
     }
 }

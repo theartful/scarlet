@@ -156,6 +156,14 @@ impl<T: Scalar, const N: usize, U> GenericVector<T, N, U> {
     }
 }
 
+impl<T: Scalar, const N: usize, U> Default for GenericVector<T, N, U> {
+    fn default() -> Self {
+        let vec = [T::zero(); N];
+        let p = std::marker::PhantomData;
+        Self { vec, p }
+    }
+}
+
 impl<T: Scalar, const N: usize, U> InnerScalar for GenericVector<T, N, U> {
     type ScalarType = T;
 }
@@ -388,6 +396,13 @@ impl<T: Scalar, const N: usize> From<Vector<T, N>> for Point<T, N> {
 impl<T: Scalar, const N: usize> From<Point<T, N>> for Vector<T, N> {
     #[inline]
     fn from(v: Point<T, N>) -> Vector<T, N> {
+        let p = std::marker::PhantomData;
+        Vector { vec: v.vec, p }
+    }
+}
+impl<T: Scalar, const N: usize> From<Normal<T, N>> for Vector<T, N> {
+    #[inline]
+    fn from(v: Normal<T, N>) -> Vector<T, N> {
         let p = std::marker::PhantomData;
         Vector { vec: v.vec, p }
     }

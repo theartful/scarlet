@@ -490,7 +490,7 @@ impl GFloat for f32 {
     }
     #[inline]
     fn rel_epsilon() -> Self {
-        1e-6_f32
+        1e-4_f32
     }
 
     #[inline]

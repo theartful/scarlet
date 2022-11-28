@@ -1,4 +1,4 @@
 pub mod bbox;
+pub mod primitive;
 pub mod ray;
-pub mod shape;
 pub mod sphere;
