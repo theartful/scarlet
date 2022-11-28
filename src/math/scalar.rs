@@ -28,6 +28,11 @@ pub trait Scalar: PartialEq + PartialOrd + NumOps + NumAssignOps + Copy + Debug 
     fn highest() -> Self;
 
     #[inline]
+    fn two() -> Self {
+        Self::one() + Self::one()
+    }
+
+    #[inline]
     fn is_one(self) -> bool {
         self == Self::one()
     }
@@ -143,6 +148,7 @@ pub trait GFloat: SignedScalar {
     fn pi() -> Self;
     fn tau() -> Self;
     fn frac_pi_2() -> Self;
+    fn frac_pi_4() -> Self;
     fn abs_epsilon() -> Self;
     fn rel_epsilon() -> Self;
 
@@ -164,6 +170,12 @@ pub trait GFloat: SignedScalar {
     }
     fn frac_pi_2_upper() -> Self {
         Self::frac_pi_2().next_up()
+    }
+    fn frac_pi_4_lower() -> Self {
+        Self::frac_pi_4().next_down()
+    }
+    fn frac_pi_4_upper() -> Self {
+        Self::frac_pi_4().next_up()
     }
 
     // math
@@ -469,6 +481,10 @@ impl GFloat for f32 {
         std::f32::consts::FRAC_PI_2
     }
     #[inline]
+    fn frac_pi_4() -> Self {
+        std::f32::consts::FRAC_PI_4
+    }
+    #[inline]
     fn abs_epsilon() -> Self {
         1e-6_f32
     }
@@ -501,6 +517,14 @@ impl GFloat for f32 {
     #[inline]
     fn frac_pi_2_upper() -> Self {
         Self::pi_upper() / 2.0f32
+    }
+    #[inline]
+    fn frac_pi_4_lower() -> Self {
+        Self::pi_lower() / 4.0f32
+    }
+    #[inline]
+    fn frac_pi_4_upper() -> Self {
+        Self::pi_upper() / 4.0f32
     }
 
     // math
@@ -650,6 +674,10 @@ impl GFloat for f64 {
         std::f64::consts::FRAC_PI_2
     }
     #[inline]
+    fn frac_pi_4() -> Self {
+        std::f64::consts::FRAC_PI_4
+    }
+    #[inline]
     fn abs_epsilon() -> Self {
         1e-6_f64
     }
@@ -682,6 +710,14 @@ impl GFloat for f64 {
     #[inline]
     fn frac_pi_2_upper() -> Self {
         Self::pi_upper() / 2.0f64
+    }
+    #[inline]
+    fn frac_pi_4_lower() -> Self {
+        Self::pi_lower() / 4.0f64
+    }
+    #[inline]
+    fn frac_pi_4_upper() -> Self {
+        Self::pi_upper() / 4.0f64
     }
 
     // math

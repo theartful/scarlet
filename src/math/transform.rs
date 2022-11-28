@@ -376,7 +376,7 @@ impl<T: GFloat> Transform<T> {
 
     /// ```text
     ///     original space                     mapped space
-    /// z=0   z=near     z=far          z=0                   z=1
+    /// z=0   z=-near     z=-far        z=0                   z=1
     ///                                   _____________________
     ///                 /  |             |                     |
     ///              /     |             |                     |
@@ -391,20 +391,20 @@ impl<T: GFloat> Transform<T> {
     /// ```
     ///
     /// Constructs a perspective projection matrix that maps a symmetrical view
-    /// frustrum between the two clipping planes defined by `z = near` and
-    /// `z = far` and whose field of view is `fov` into the cube
+    /// frustrum between the two clipping planes defined by `z = -near` and
+    /// `z = -far` and whose field of view is `fov` into the cube
     /// `(x, y, z) \in [-1, 1] * [-1, 1] * [0, 1]`
     pub fn perspective(fov: T, near: T, far: T) -> Self {
         let e = (fov * T::half()).tan().recip();
         let mat = Matrix4x4 {
             data: [
-                [e, T::zero(), T::zero(), T::zero()],
-                [T::zero(), e, T::zero(), T::zero()],
+                [-e, T::zero(), T::zero(), T::zero()],
+                [T::zero(), -e, T::zero(), T::zero()],
                 [
                     T::zero(),
                     T::zero(),
                     far / (far - near),
-                    -far * near / (far - near),
+                    far * near / (far - near),
                 ],
                 [T::zero(), T::zero(), T::one(), T::zero()],
             ],
@@ -418,6 +418,22 @@ impl<T: GFloat> Transform<T> {
 
     pub fn inverse_matrix(&self) -> Matrix4x4<T> {
         self.minv
+    }
+
+    #[inline]
+    pub fn map<I, U>(&self, obj: I) -> U
+    where
+        Self: TransformMap<I, Output = U>,
+    {
+        <Self as TransformMap<I>>::map(self, obj)
+    }
+
+    #[inline]
+    pub fn map_inverse<I, U>(&self, obj: I) -> U
+    where
+        Self: TransformMap<I, Output = U>,
+    {
+        <Self as TransformMap<I>>::map_inverse(self, obj)
     }
 }
 
@@ -912,10 +928,10 @@ mod tests {
 
             // tan(fov/2) = x_near / z_near
             // tan(fov/2) = y_near / z_near
-            let p0 = Point3::<f64>::new(near * tan_fov_2, near * tan_fov_2, near);
-            let p1 = Point3::<f64>::new(-near * tan_fov_2, near * tan_fov_2, near);
-            let p2 = Point3::<f64>::new(near * tan_fov_2, -near * tan_fov_2, near);
-            let p3 = Point3::<f64>::new(-near * tan_fov_2, -near * tan_fov_2, near);
+            let p0 = Point3::<f64>::new(near * tan_fov_2, near * tan_fov_2, -near);
+            let p1 = Point3::<f64>::new(-near * tan_fov_2, near * tan_fov_2, -near);
+            let p2 = Point3::<f64>::new(near * tan_fov_2, -near * tan_fov_2, -near);
+            let p3 = Point3::<f64>::new(-near * tan_fov_2, -near * tan_fov_2, -near);
 
             assert!(transform.map(p0).almost_eq(Point3::new(1.0, 1.0, 0.0)));
             assert!(transform.map(p1).almost_eq(Point3::new(-1.0, 1.0, 0.0)));
@@ -924,10 +940,10 @@ mod tests {
 
             // tan(fov/2) = x_far / z_far
             // tan(fov/2) = y_far / z_far
-            let p4 = Point3::<f64>::new(far * tan_fov_2, far * tan_fov_2, far);
-            let p5 = Point3::<f64>::new(-far * tan_fov_2, far * tan_fov_2, far);
-            let p6 = Point3::<f64>::new(far * tan_fov_2, -far * tan_fov_2, far);
-            let p7 = Point3::<f64>::new(-far * tan_fov_2, -far * tan_fov_2, far);
+            let p4 = Point3::<f64>::new(far * tan_fov_2, far * tan_fov_2, -far);
+            let p5 = Point3::<f64>::new(-far * tan_fov_2, far * tan_fov_2, -far);
+            let p6 = Point3::<f64>::new(far * tan_fov_2, -far * tan_fov_2, -far);
+            let p7 = Point3::<f64>::new(-far * tan_fov_2, -far * tan_fov_2, -far);
 
             assert!(transform.map(p4).almost_eq(Point3::new(1.0, 1.0, 1.0)));
             assert!(transform.map(p5).almost_eq(Point3::new(-1.0, 1.0, 1.0)));

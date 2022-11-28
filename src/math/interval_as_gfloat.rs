@@ -212,6 +212,13 @@ impl<T: GFloat> GFloat for Interval<T> {
         }
     }
     #[inline]
+    fn frac_pi_4() -> Self {
+        Self {
+            inf: T::frac_pi_4_lower(),
+            sup: T::frac_pi_4_upper(),
+        }
+    }
+    #[inline]
     fn rel_epsilon() -> Self {
         Self {
             inf: T::rel_epsilon(),
