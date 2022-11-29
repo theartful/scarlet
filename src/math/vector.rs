@@ -456,7 +456,6 @@ impl<T: SignedScalar, const N: usize, U> GenericVector<T, N, U> {
     #[inline]
     pub fn dot<I>(self, rhs: I) -> <Self as InnerScalar>::ScalarType
     where
-        U: HasSub,
         Self: InnerProduct<I>,
     {
         <Self as InnerProduct<I>>::dot(self, rhs)

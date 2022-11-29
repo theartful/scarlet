@@ -173,7 +173,7 @@ impl IntersectsRay for Bbox3 {
             ];
 
             let mut min_distance_idx = 0;
-            for i in 0..6 {
+            for i in 1..6 {
                 if distances[i] < distances[min_distance_idx] {
                     min_distance_idx = i;
                 }

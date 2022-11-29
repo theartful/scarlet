@@ -78,9 +78,9 @@ impl Camera for ThinLensCamera {
 
         // now let's compute p_film
         let p_film = Point3f::new(
-            sample.p_film.x() * self.film_width - Float::half() * self.film_width,
             // the image on the other side of the lens is flipped, so we have to
             // flip it again
+            Float::half() * self.film_width - sample.p_film.x() * self.film_width,
             Float::half() * self.film_height - sample.p_film.y() * self.film_height,
             self.film_distance,
         );
